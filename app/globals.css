@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.section-kicker {
+  @apply text-xs font-black uppercase tracking-wide text-amber-700;
+}
