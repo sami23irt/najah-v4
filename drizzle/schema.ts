@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -159,14 +160,37 @@ export const quizAttempts = pgTable(
   {
     id: serial("id").primaryKey(),
     userId: uuid("user_id").notNull(),
-    level: schoolLevelEnum("level").notNull(),
+    // Nullable: quizzes generated from a student's own uploaded document
+    // (see studentDocuments below) don't have a curriculum level.
+    level: schoolLevelEnum("level"),
     subject: varchar("subject", { length: 120 }).notNull(),
+    documentId: uuid("document_id").references(() => studentDocuments.id, { onDelete: "set null" }),
     totalQuestions: integer("total_questions").notNull(),
     correctAnswers: integer("correct_answers").notNull(),
     curriculumReference: varchar("curriculum_reference", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   table => ({ userSubjectIdx: index("quiz_attempts_user_subject_idx").on(table.userId, table.subject, table.createdAt) })
+);
+
+// quiz_sessions was previously only defined in raw SQL (0007_compliance_quizzes_whiteboard.sql)
+// without a drizzle mirror. Added here for consistency with the rest of the schema.
+export const quizSessions = pgTable(
+  "quiz_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    level: schoolLevelEnum("level"),
+    subject: varchar("subject", { length: 120 }).notNull(),
+    documentId: uuid("document_id").references(() => studentDocuments.id, { onDelete: "cascade" }),
+    questions: jsonb("questions").notNull(),
+    totalQuestions: integer("total_questions").notNull(),
+    correctAnswers: integer("correct_answers"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  },
+  table => ({ userIdx: index("quiz_sessions_user_idx").on(table.userId, table.createdAt) })
 );
 
 // FIX (bug #1 from the audit): leaderboard_snapshots existed before but nothing
@@ -218,4 +242,38 @@ export const curriculumChunks = pgTable(
     docIdx: index("curriculum_chunks_doc_idx").on(table.documentId, table.chunkIndex),
     // ivfflat index created directly in SQL migration (drizzle-kit can't express it yet)
   })
+);
+
+// ---- study workspace: student-uploaded documents (new — replaces the mocked
+// PDF/YouTube importer + copilot + quiz generator in app/study/page.tsx) -----
+export const studentDocuments = pgTable(
+  "student_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    sourceType: varchar("source_type", { length: 20 }).notNull(), // "pdf" | "youtube"
+    storagePath: varchar("storage_path", { length: 500 }), // Supabase Storage path in the "study-uploads" bucket, for PDFs
+    sourceUrl: varchar("source_url", { length: 500 }), // original YouTube URL, if applicable
+    status: varchar("status", { length: 20 }).notNull().default("processing"), // "processing" | "ready" | "failed"
+    errorMessage: text("error_message"),
+    summary: jsonb("summary"), // { mainIdea, keyPoints[], workedExample? } generated once ingestion succeeds
+    charCount: integer("char_count"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => ({ userIdx: index("student_documents_user_idx").on(table.userId, table.createdAt) })
+);
+
+export const studentDocumentChunks = pgTable(
+  "student_document_chunks",
+  {
+    id: serial("id").primaryKey(),
+    documentId: uuid("document_id").notNull().references(() => studentDocuments.id, { onDelete: "cascade" }),
+    chunkIndex: integer("chunk_index").notNull(),
+    content: text("content").notNull(),
+    embedding: vector("embedding", { dimensions: 768 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => ({ docIdx: index("student_document_chunks_doc_idx").on(table.documentId, table.chunkIndex) })
 );

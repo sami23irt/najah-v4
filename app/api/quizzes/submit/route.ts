@@ -32,9 +32,10 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     level: session.level,
     subject: session.subject,
+    document_id: session.document_id ?? null,
     total_questions: questions.data.length,
     correct_answers: correctAnswers,
-    curriculum_reference: "AI-RAG",
+    curriculum_reference: session.document_id ? "AI-DOCUMENT-RAG" : "AI-RAG",
   });
   if (attemptError) return NextResponse.json({ error: "تم إنهاء الاختبار لكن تعذر حفظ المحاولة." }, { status: 500 });
 

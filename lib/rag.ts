@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createServiceClient } from "./supabase-server";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
@@ -146,4 +147,174 @@ export async function ingestCurriculumDocument(params: {
     if (chunkError) throw new Error(`Failed to insert chunk ${i}: ${chunkError.message}`);
   }
   return { documentId: doc.id, chunkCount: chunks.length };
+}
+
+// ---- Student-uploaded documents (study workspace) ---------------------------
+// Same chunk -> embed -> store pipeline as ingestCurriculumDocument above, but
+// for one student's own PDF/YouTube import instead of the shared curriculum
+// knowledge base. Kept as a separate function because the caller (an API
+// route) already owns the student_documents row (created up front so the
+// student sees a "processing" state immediately).
+
+export async function ingestStudentDocumentChunks(documentId: string, rawText: string): Promise<number> {
+  const supabase = createServiceClient();
+  const chunks = chunkText(rawText);
+  for (let i = 0; i < chunks.length; i++) {
+    const embedding = await embedText(chunks[i], "RETRIEVAL_DOCUMENT");
+    const { error } = await supabase.from("student_document_chunks").insert({
+      document_id: documentId,
+      chunk_index: i,
+      content: chunks[i],
+      embedding,
+    });
+    if (error) throw new Error(`Failed to store chunk ${i}: ${error.message}`);
+  }
+  return chunks.length;
+}
+
+export type RetrievedDocumentChunk = { chunkId: number; content: string; similarity: number };
+
+/**
+ * Retrieval for the study copilot: nearest chunks within ONE document via
+ * match_student_document_chunks() (pgvector cosine distance). Ownership of
+ * documentId must already be verified by the caller (service client +
+ * .eq("user_id", user.id)) before this is called — this function trusts the
+ * documentId it's given.
+ */
+export async function retrieveDocumentContext(
+  question: string,
+  documentId: string,
+  matchCount = 6
+): Promise<RetrievedDocumentChunk[]> {
+  const embedding = await embedText(question, "RETRIEVAL_QUERY");
+  const supabase = createServiceClient();
+
+  const { data, error } = await supabase.rpc("match_student_document_chunks", {
+    query_embedding: embedding,
+    match_document_id: documentId,
+    match_count: matchCount,
+  });
+  if (error) throw new Error(`Document retrieval failed: ${error.message}`);
+
+  return (data ?? []).map((row: any) => ({
+    chunkId: row.chunk_id,
+    content: row.content,
+    similarity: row.similarity,
+  }));
+}
+
+const studySummarySchema = z.object({
+  mainIdea: z.string().min(10).max(600),
+  keyPoints: z.array(z.string().min(3).max(300)).min(2).max(6),
+  workedExample: z.string().max(600).optional(),
+});
+export type StudySummary = z.infer<typeof studySummarySchema>;
+
+// gemini-3.5-flash has a large context window, but we still cap what we send
+// per call to keep latency/cost sane and avoid truncation surprises. A PDF
+// longer than DIRECT_SUMMARY_CHAR_LIMIT is summarized in segments (map), then
+// the segment summaries are combined into one final summary (reduce) — so a
+// 40-page exam prep document gets covered end-to-end instead of only its
+// first ~8 pages.
+const DIRECT_SUMMARY_CHAR_LIMIT = 60_000;
+const SEGMENT_CHAR_SIZE = 50_000;
+const MAX_SEGMENTS = 20; // ~1M chars ceiling; degrades gracefully beyond that instead of erroring
+
+function splitIntoSegments(raw: string, segmentSize: number): string[] {
+  const paragraphs = raw.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+  const segments: string[] = [];
+  let current = "";
+  for (const paragraph of paragraphs) {
+    if ((current + "\n\n" + paragraph).length <= segmentSize) {
+      current = current ? `${current}\n\n${paragraph}` : paragraph;
+      continue;
+    }
+    if (current) segments.push(current);
+    current = paragraph.length <= segmentSize ? paragraph : paragraph.slice(0, segmentSize);
+  }
+  if (current) segments.push(current);
+  return segments;
+}
+
+async function callGeminiJson(systemText: string, userText: string, maxOutputTokens: number): Promise<unknown> {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemText }] },
+        contents: [{ role: "user", parts: [{ text: userText }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens, responseMimeType: "application/json" },
+      }),
+    }
+  );
+  if (!response.ok) throw new Error(`Gemini summary failed: ${response.status} ${await response.text()}`);
+  const result = await response.json();
+  const raw: string = result.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("SUMMARY_INVALID_JSON");
+  }
+}
+
+/**
+ * Condenses one segment of a long document into a short plain-text digest
+ * (a few sentences), grounded strictly in that segment. These digests are
+ * later combined and re-summarized into the final structured StudySummary.
+ */
+async function summarizeSegment(segment: string, index: number, total: number, locale: "ar" | "fr"): Promise<string> {
+  const prompt =
+    locale === "ar"
+      ? `هذا هو الجزء ${index + 1} من ${total} من مستند دراسي. لخّصه في 3 إلى 5 جمل، مقتصراً حصراً على ما ورد فيه. أعد JSON بالشكل {"digest":"..."}. النص:\n\n${segment}`
+      : `Voici la partie ${index + 1}/${total} d'un document pédagogique. Résume-la en 3 à 5 phrases, en te limitant strictement à ce qu'elle contient. Réponds en JSON au format {"digest":"..."}. Texte :\n\n${segment}`;
+  const json = await callGeminiJson(
+    "Tu condenses fidèlement un extrait de document. N'invente rien. Réponds uniquement en JSON valide.",
+    prompt,
+    400
+  );
+  const parsed = z.object({ digest: z.string().min(1) }).safeParse(json);
+  if (!parsed.success) throw new Error("SUMMARY_SEGMENT_FAILED_VALIDATION");
+  return parsed.data.digest;
+}
+
+/**
+ * Generates a structured summary of an uploaded document/transcript, grounded
+ * strictly in its own text (not the curriculum KB). Used right after
+ * ingestion so the student sees a real summary instead of the previous
+ * hardcoded "Les limites d'une fonction" placeholder.
+ *
+ * Documents that fit within DIRECT_SUMMARY_CHAR_LIMIT are summarized in one
+ * call. Longer documents are summarized segment-by-segment (map), then those
+ * segment digests are combined into one final structured summary (reduce),
+ * so the whole document is covered instead of just its opening pages.
+ */
+export async function generateStudySummary(rawText: string, locale: "ar" | "fr" = "fr"): Promise<StudySummary> {
+  let sourceText: string;
+
+  if (rawText.length <= DIRECT_SUMMARY_CHAR_LIMIT) {
+    sourceText = rawText;
+  } else {
+    const segments = splitIntoSegments(rawText, SEGMENT_CHAR_SIZE).slice(0, MAX_SEGMENTS);
+    const digests: string[] = [];
+    for (let i = 0; i < segments.length; i++) {
+      digests.push(await summarizeSegment(segments[i], i, segments.length, locale));
+    }
+    sourceText = digests.map((d, i) => `[${locale === "ar" ? "جزء" : "Partie"} ${i + 1}] ${d}`).join("\n\n");
+  }
+
+  const prompt =
+    locale === "ar"
+      ? `لخّص هذا المحتوى الدراسي بالاعتماد حصراً على النص المرفق، دون إضافة أي معلومة غير موجودة فيه. أعد JSON فقط بالشكل {"mainIdea":"...","keyPoints":["...","..."],"workedExample":"..."} (workedExample اختياري، أدرجه فقط إذا كان النص يحتوي فعلاً على مثال محلول). النص:\n\n${sourceText}`
+      : `Résume ce contenu pédagogique en te basant strictement sur le texte fourni ci-dessous, sans ajouter d'information absente. Réponds uniquement en JSON au format {"mainIdea":"...","keyPoints":["...","..."],"workedExample":"..."} (workedExample est optionnel, à inclure seulement si le texte contient réellement un exemple résolu). Texte :\n\n${sourceText}`;
+
+  const json = await callGeminiJson(
+    "Tu résumes fidèlement un support fourni par l'utilisateur. N'invente jamais un fait absent du texte. Réponds uniquement en JSON valide.",
+    prompt,
+    1200
+  );
+  const parsed = studySummarySchema.safeParse(json);
+  if (!parsed.success) throw new Error("SUMMARY_FAILED_VALIDATION");
+  return parsed.data;
 }

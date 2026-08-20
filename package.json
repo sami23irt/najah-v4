@@ -19,6 +19,7 @@
     "drizzle-orm": "^0.44.5",
     "postgres": "^3.4.4",
     "pgvector": "^0.2.0",
+    "unpdf": "^0.12.1",
     "livekit-server-sdk": "^2.9.2",
     "livekit-client": "^2.7.5",
     "@livekit/components-react": "^2.6.9",
