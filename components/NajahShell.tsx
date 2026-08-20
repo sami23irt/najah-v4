@@ -2,58 +2,52 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
-import { LibraryBig, LogOut, UsersRound, BrainCircuit, ChartNoAxesCombined } from "lucide-react";
+import { Archive, BrainCircuit, ChartNoAxesCombined, FileQuestion, LogIn, LogOut, Sparkles, UsersRound } from "lucide-react";
 
 const navItems = [
-  { href: "/archive", label: "الأرشيف", icon: LibraryBig },
-  { href: "/rooms", label: "غرف المراجعة", icon: UsersRound },
-  { href: "/copilot", label: "المساعد الذكي", icon: BrainCircuit },
-  { href: "/quizzes", label: "اختبارات MCQ", icon: BrainCircuit },
-  { href: "/dashboard", label: "لوحتي", icon: ChartNoAxesCombined },
+  { href: "/archive", label: "Archives", icon: Archive },
+  { href: "/study", label: "Ma séance", icon: Sparkles },
+  { href: "/copilot", label: "Assistant IA", icon: BrainCircuit },
+  { href: "/quizzes", label: "Quiz", icon: FileQuestion },
+  { href: "/rooms", label: "Salles", icon: UsersRound },
+  { href: "/dashboard", label: "Mon espace", icon: ChartNoAxesCombined },
 ];
 
 export function NajahShell({ children }: { children: ReactNode }) {
-  const { isAuthenticated, startLogin, signOut, loading } = useAuth();
+  const { isAuthenticated, startLogin, signOut, loading, user } = useAuth();
+  const pathname = usePathname();
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-emerald-950/10 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <Link href="/" className="text-xl font-black text-emerald-950">
-            Najah<span className="text-amber-600">.ma</span>
+    <div className="najah-shell min-h-screen">
+      <header className="sticky top-0 z-20 border-b border-emerald-950/10 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <span className="grid size-11 place-items-center rounded-2xl bg-emerald-900 text-xl font-black text-white">N</span>
+            <span className="text-2xl font-black tracking-tight text-emerald-950">Najah<span className="text-amber-600">.ma</span></span>
           </Link>
-          <nav className="hidden items-center gap-5 md:flex">
-            {navItems.map(item => (
-              <Link key={item.href} href={item.href} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-emerald-900">
-                <item.icon className="size-4" />
-                {item.label}
-              </Link>
-            ))}
+          <nav className="hidden items-center gap-5 lg:flex">
+            {navItems.map(item => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return <Link key={item.href} href={item.href} className={`flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-bold transition ${active ? "bg-emerald-50 text-emerald-900" : "text-slate-600 hover:text-emerald-900"}`}>
+                <item.icon className="size-4" />{item.label}
+              </Link>;
+            })}
           </nav>
-          {!loading && (
-            isAuthenticated ? (
-              <button onClick={() => signOut()} className="flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-red-700">
-                <LogOut className="size-4" />
-                خروج
-              </button>
-            ) : (
-              <button onClick={() => startLogin()} className="rounded-xl bg-emerald-900 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800">
-                دخول التلميذ
-              </button>
-            )
-          )}
+          {!loading && (isAuthenticated ? (
+            <div className="flex items-center gap-3">
+              <div className="hidden text-right sm:block"><p className="text-xs font-black text-emerald-950">Espace élève</p><p className="max-w-32 truncate text-[11px] text-slate-500">{user?.email}</p></div>
+              <button onClick={() => signOut()} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600 hover:border-red-200 hover:text-red-700"><LogOut className="size-4" />Sortir</button>
+            </div>
+          ) : <Link href="/auth" className="najah-button px-4 py-2.5 text-sm"><LogIn className="size-4" />Se connecter</Link>)}
         </div>
-        <nav className="flex items-center gap-4 overflow-x-auto border-t border-emerald-950/5 px-5 py-2 md:hidden">
-          {navItems.map(item => (
-            <Link key={item.href} href={item.href} className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-slate-600">
-              <item.icon className="size-4" />
-              {item.label}
-            </Link>
-          ))}
+        <nav className="flex gap-2 overflow-x-auto border-t border-emerald-950/5 px-5 py-2 lg:hidden">
+          {navItems.map(item => <Link key={item.href} href={item.href} className="flex shrink-0 items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-bold text-slate-600"><item.icon className="size-4" />{item.label}</Link>)}
         </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
+      <main className="mx-auto max-w-7xl px-5 py-8">{children}</main>
+      <footer className="mx-auto mt-12 flex max-w-7xl items-center justify-between border-t border-emerald-950/10 px-5 py-6 text-xs text-slate-500"><span>© 2026 Najah.ma</span><span>Réviser mieux. Progresser ensemble.</span></footer>
     </div>
   );
 }

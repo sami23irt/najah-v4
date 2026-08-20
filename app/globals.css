@@ -2,6 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-.section-kicker {
-  @apply text-xs font-black uppercase tracking-wide text-amber-700;
+:root {
+  --najah-forest: #075c4a;
+  --najah-deep: #063c32;
+  --najah-gold: #d8a238;
+  --najah-cream: #f7f6f0;
+  --najah-mint: #e8f3ee;
 }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { min-height: 100vh; background: var(--najah-cream); }
+button, input, select, textarea { font: inherit; }
+button { transition: transform 160ms ease-out, box-shadow 160ms ease-out, background-color 160ms ease-out; }
+button:active { transform: scale(.98); }
+
+.section-kicker {
+  @apply text-xs font-black uppercase tracking-[0.18em] text-amber-700;
+}
+
+.najah-shell {
+  background:
+    radial-gradient(circle at 8% 18%, rgba(216,162,56,.10), transparent 22rem),
+    radial-gradient(circle at 92% 78%, rgba(7,92,74,.09), transparent 28rem),
+    var(--najah-cream);
+}
+
+.moroccan-grid {
+  background-image: linear-gradient(45deg, rgba(7,92,74,.035) 25%, transparent 25%, transparent 75%, rgba(7,92,74,.035) 75%), linear-gradient(45deg, rgba(216,162,56,.035) 25%, transparent 25%, transparent 75%, rgba(216,162,56,.035) 75%);
+  background-position: 0 0, 14px 14px;
+  background-size: 28px 28px;
+}
+
+.najah-card { @apply rounded-[28px] border border-emerald-950/10 bg-white shadow-[0_18px_45px_rgba(6,60,50,.07)]; }
+.najah-button { @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-900 px-5 py-3 font-black text-white shadow-sm hover:bg-emerald-800; }
+.najah-button-gold { @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-400 px-5 py-3 font-black text-emerald-950 shadow-sm hover:bg-amber-300; }
+.najah-input { @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/10; }
+
+::selection { background: rgba(216,162,56,.35); }

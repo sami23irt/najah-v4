@@ -14,9 +14,6 @@ export function useAuth() {
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
       setLoading(false);
-      // Link this browser's events to the same distinct ID the server uses
-      // (auth.uid()) — no email/name sent, just the ID, to keep PostHog
-      // person properties minimal for a platform used by minors.
       if (data.user) posthog.identify(data.user.id);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
@@ -27,10 +24,11 @@ export function useAuth() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const startLogin = () =>
-    supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback` } });
-
+  const signUp = async (email: string, password: string) => supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth` } });
+  const signIn = async (email: string, password: string) => supabase.auth.signInWithPassword({ email, password });
+  const resendVerification = async (email: string) => supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: `${window.location.origin}/auth` } });
+  const startLogin = () => supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback` } });
   const signOut = () => supabase.auth.signOut();
 
-  return { user, isAuthenticated: !!user, loading, startLogin, signOut };
+  return { user, isAuthenticated: !!user, loading, signUp, signIn, resendVerification, startLogin, signOut };
 }
