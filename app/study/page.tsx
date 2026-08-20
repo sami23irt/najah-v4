@@ -147,7 +147,11 @@ export default function StudyPage() {
               </div>
               {importError && <p className="mt-4 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700"><XCircle className="mr-1 inline size-4" />{importError}</p>}
             </div>
-            <aside className="moroccan-grid bg-emerald-950 p-7 text-white md:p-9">
+            <aside className="moroccan-grid relative bg-emerald-950 p-7 text-white md:p-9">
+              <div className="relative mb-7 h-48 overflow-hidden rounded-[26px] bg-gradient-to-b from-[#f2f7f2] to-[#fbf8ed]">
+                <img src="/assets/study-hero-ornament.png" alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-bottom opacity-90" />
+                <img src="/assets/study-hero-illustration.png" alt="Illustration marocaine de livres et de fournitures scolaires" className="absolute inset-x-0 bottom-0 mx-auto h-56 w-auto max-w-none object-contain object-bottom drop-shadow-[0_18px_24px_rgba(15,67,55,0.18)]" />
+              </div>
               <WandSparkles className="size-10 text-amber-300" />
               <h3 className="mt-6 text-2xl font-black">Votre support devient un plan de révision.</h3>
               <div className="mt-8 space-y-5 text-sm text-emerald-50/75">
