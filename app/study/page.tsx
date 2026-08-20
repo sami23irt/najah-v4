@@ -1,12 +1,31 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useState } from "react";
-import { BookOpen, Bot, CheckCircle2, FileText, FileUp, Link2, MessageCircle, Play, Send, Sparkles, WandSparkles } from "lucide-react";
+import { ChangeEvent, useState } from "react";
+import {
+  ArrowRight,
+  Atom,
+  BookOpen,
+  BrainCircuit,
+  Calculator,
+  ChartNoAxesCombined,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  FileText,
+  FileUp,
+  FolderOpen,
+  Link2,
+  Play,
+  Sparkles,
+  UploadCloud,
+  Youtube,
+} from "lucide-react";
 import { NajahShell } from "@/components/NajahShell";
 
-const starterQuiz = [
-  { question: "Quelle est l’idée principale de ce chapitre ?", options: ["Une définition isolée", "Une méthode à appliquer", "Une date historique", "Un exercice sans règle"], answer: 1 },
-  { question: "Quelle étape faut-il vérifier en premier ?", options: ["Les données du problème", "La couleur du graphique", "Le temps de révision", "Le nom du fichier"], answer: 0 },
+const recentMaterials = [
+  { title: "Limites et continuité", subject: "Mathématiques", age: "il y a 2 jours", icon: Calculator, tone: "text-emerald-800 bg-emerald-50" },
+  { title: "Lois de Newton", subject: "Physique", age: "il y a 3 jours", icon: Atom, tone: "text-teal-800 bg-teal-50" },
+  { title: "Dérivation et variations", subject: "Analyse", age: "il y a 5 jours", icon: BrainCircuit, tone: "text-amber-800 bg-amber-50" },
 ];
 
 export default function StudyPage() {
@@ -14,48 +33,145 @@ export default function StudyPage() {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
-  const [sourceTitle, setSourceTitle] = useState("");
-  const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState<{from: "ai" | "me"; text: string}[]>([]);
-  const [quizOpen, setQuizOpen] = useState(false);
-  const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
-  const [quizDone, setQuizDone] = useState(false);
 
   const importFile = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) { setFileName(file.name); setYoutubeUrl(""); }
+    if (file) {
+      setFileName(file.name);
+      setYoutubeUrl("");
+    }
   };
 
   const analyze = async () => {
     if (!fileName && !youtubeUrl) return;
     setBusy(true);
     await new Promise(resolve => setTimeout(resolve, 900));
-    setSourceTitle(fileName || "Cours vidéo YouTube");
-    setReady(true); setBusy(false);
-    setMessages([{ from: "ai", text: "Bonjour ! J’ai parcouru votre support. Posez-moi une question sur ce cours et je vous répondrai avec des explications claires." }]);
+    setReady(true);
+    setBusy(false);
   };
 
-  const ask = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!question.trim()) return;
-    const asked = question.trim();
-    setQuestion("");
-    setMessages(current => [...current, { from: "me", text: asked }, { from: "ai", text: `Voici une piste à partir de « ${sourceTitle} » : commencez par identifier la définition, puis appliquez la règle principale étape par étape. Vous pouvez aussi me demander un exemple ou une explication plus simple.` }]);
-  };
+  return (
+    <NajahShell>
+      <section dir="ltr" className="mx-auto max-w-[1180px] space-y-7 pb-6">
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-900/10 bg-white px-4 py-2 text-sm font-bold text-emerald-900 shadow-sm">
+            <BookOpen className="size-4 text-emerald-700" />
+            <span>Vous consultez maintenant :</span>
+            <span className="text-emerald-950">2e année baccalauréat — Sciences mathématiques</span>
+            <ChevronDown className="size-4 text-slate-500" />
+          </div>
+        </div>
 
-  const openQuiz = () => { setQuizOpen(true); setQuizDone(false); setQuizAnswers(Array(starterQuiz.length).fill(-1)); };
-  const score = quizAnswers.reduce((total, answer, index) => total + (answer === starterQuiz[index].answer ? 1 : 0), 0);
+        <div className="text-center">
+          <p className="section-kicker">Votre espace de révision</p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">Commencez vos révisions intelligemment</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-500">Importez un cours ou une vidéo, puis transformez-le en résumé, questions et outils de révision.</p>
+        </div>
 
-  return <NajahShell>
-    {!ready ? <section className="mx-auto max-w-5xl"><div className="mb-8"><p className="section-kicker">Ma séance de révision</p><h1 className="mt-2 text-4xl font-black text-emerald-950 md:text-5xl">Commencez par une matière.</h1><p className="mt-3 max-w-2xl leading-7 text-slate-600">Importez un PDF ou collez une vidéo YouTube. Najah.ma transforme votre support en résumé, questions et entraînement.</p></div><div className="najah-card overflow-hidden md:grid md:grid-cols-[1fr_.65fr]"><div className="p-7 md:p-10"><div className="flex items-center gap-3"><span className="grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-800"><Sparkles /></span><div><h2 className="text-2xl font-black text-emerald-950">Importer un nouveau support</h2><p className="text-sm text-slate-500">PDF, document ou vidéo</p></div></div><div className="mt-8 rounded-[26px] border-2 border-dashed border-emerald-200 bg-emerald-50/45 p-8 text-center"><FileUp className="mx-auto size-12 text-emerald-700" /><p className="mt-4 text-lg font-black text-emerald-950">Déposez votre PDF ici</p><p className="mt-2 text-sm text-slate-500">ou choisissez un fichier depuis votre appareil</p><label className="najah-button mt-5 cursor-pointer"><FileText className="size-4" />Choisir un PDF<input type="file" accept=".pdf,.doc,.docx" onChange={importFile} className="hidden" /></label>{fileName && <p className="mt-4 rounded-xl bg-white p-3 text-sm font-bold text-emerald-800"><CheckCircle2 className="mr-1 inline size-4" />{fileName}</p>}</div><div className="my-5 flex items-center gap-3 text-xs font-bold text-slate-400"><span className="h-px flex-1 bg-slate-200" />OU<span className="h-px flex-1 bg-slate-200" /></div><div className="flex gap-2"><div className="relative flex-1"><Link2 className="absolute left-4 top-3.5 size-5 text-slate-400" /><input value={youtubeUrl} onChange={e => {setYoutubeUrl(e.target.value); setFileName("");}} className="najah-input pl-12" placeholder="Collez un lien YouTube" /></div><button onClick={analyze} disabled={busy || (!fileName && !youtubeUrl)} className="najah-button shrink-0 disabled:opacity-40">{busy ? "Analyse…" : "Analyser"}</button></div></div><aside className="moroccan-grid bg-emerald-950 p-7 text-white md:p-9"><WandSparkles className="size-10 text-amber-300" /><h3 className="mt-6 text-2xl font-black">Votre support devient un plan de révision.</h3><div className="mt-8 space-y-5 text-sm text-emerald-50/75"><p><span className="mr-3 inline-grid size-7 place-items-center rounded-full bg-white/10 font-black text-amber-200">1</span>Un résumé structuré et lisible</p><p><span className="mr-3 inline-grid size-7 place-items-center rounded-full bg-white/10 font-black text-amber-200">2</span>Un assistant qui connaît le contexte</p><p><span className="mr-3 inline-grid size-7 place-items-center rounded-full bg-white/10 font-black text-amber-200">3</span>Un quiz pour vérifier vos acquis</p></div></aside></div></section> : <Workspace sourceTitle={sourceTitle} messages={messages} question={question} setQuestion={setQuestion} ask={ask} openQuiz={openQuiz} />}
-    {quizOpen && <QuizModal answers={quizAnswers} setAnswers={setQuizAnswers} done={quizDone} setDone={setQuizDone} score={score} close={() => setQuizOpen(false)} />}
-  </NajahShell>;
+        <div className="grid items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)_285px]">
+          <StudyIllustration />
+
+          <div className="najah-card p-5 md:p-7">
+            <div className="rounded-[26px] border-2 border-dashed border-emerald-900/15 bg-white p-5 md:p-7">
+              <div className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-50 text-emerald-800 ring-8 ring-emerald-50/60">
+                <FileUp className="size-8" />
+              </div>
+              <h2 className="mt-5 text-center text-2xl font-black text-emerald-950">Importer un nouveau support</h2>
+              <p className="mt-2 text-center text-sm text-slate-500">PDF, document ou vidéo YouTube</p>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                <label className="najah-button-gold cursor-pointer px-6">
+                  <FileText className="size-5" />
+                  Télécharger un PDF
+                  <input type="file" accept=".pdf,.doc,.docx" onChange={importFile} className="hidden" />
+                </label>
+                <button type="button" onClick={() => document.getElementById("youtube-input")?.focus()} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-900/25 bg-white px-6 py-3 font-black text-emerald-900 hover:border-emerald-700 hover:bg-emerald-50">
+                  <Youtube className="size-5 text-red-600" />
+                  Coller un lien YouTube
+                </button>
+              </div>
+
+              <div className="my-5 flex items-center gap-3 text-xs font-black text-slate-400">
+                <span className="h-px flex-1 bg-slate-200" />
+                OU
+                <span className="h-px flex-1 bg-slate-200" />
+              </div>
+
+              <label className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-[#fbfcfa] px-4 py-6 text-center transition hover:border-emerald-500 hover:bg-emerald-50/40">
+                <UploadCloud className="size-8 text-emerald-700 transition group-hover:-translate-y-1" />
+                <span className="mt-2 font-black text-emerald-950">Glissez votre fichier ici</span>
+                <span className="mt-1 text-sm text-slate-500">ou choisissez-le depuis votre appareil</span>
+                <input type="file" accept=".pdf,.doc,.docx" onChange={importFile} className="hidden" />
+              </label>
+              <p className="mt-4 text-center text-xs font-bold text-slate-400">Formats acceptés : PDF, Word, MP4</p>
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                <div className="relative flex-1">
+                  <Link2 className="absolute left-4 top-3.5 size-5 text-slate-400" />
+                  <input id="youtube-input" value={youtubeUrl} onChange={event => { setYoutubeUrl(event.target.value); setFileName(""); }} className="najah-input pl-12" placeholder="Collez ici le lien YouTube du cours" />
+                </div>
+                <button type="button" onClick={analyze} disabled={busy || (!fileName && !youtubeUrl)} className="najah-button shrink-0 disabled:cursor-not-allowed disabled:opacity-40">
+                  {busy ? "Analyse…" : "Analyser le support"}
+                  <ArrowRight className="size-4" />
+                </button>
+              </div>
+
+              {fileName && <p className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800"><CheckCircle2 className="size-4" />{fileName}</p>}
+              {ready && <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-center text-sm font-bold text-amber-950">Votre support est prêt : le résumé, l’Assistant IA et le Quiz sont disponibles.</p>}
+            </div>
+          </div>
+
+          <aside className="space-y-5">
+            <div className="najah-card p-5">
+              <div className="flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-lg font-black text-emerald-950"><FolderOpen className="size-5 text-amber-600" />Mes supports récents</h2>
+                <button className="text-xs font-black text-emerald-700 hover:text-emerald-950">Voir tout</button>
+              </div>
+              <div className="mt-4 space-y-2">
+                {recentMaterials.map(material => {
+                  const Icon = material.icon;
+                  return <button key={material.title} className="flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 text-left transition hover:border-emerald-200 hover:bg-emerald-50/40">
+                    <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${material.tone}`}><Icon className="size-5" /></span>
+                    <span className="min-w-0 flex-1"><span className="block truncate text-sm font-black text-emerald-950">{material.title}</span><span className="mt-1 block text-[11px] text-slate-500">{material.subject} · {material.age}</span></span>
+                    <ArrowRight className="size-4 shrink-0 text-slate-400" />
+                  </button>;
+                })}
+              </div>
+            </div>
+
+            <div className="najah-card p-5">
+              <div className="flex items-center gap-2"><ChartNoAxesCombined className="size-5 text-emerald-700" /><h2 className="text-lg font-black text-emerald-950">Ma progression</h2></div>
+              <p className="mt-1 text-sm text-slate-500">Cette semaine</p>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-emerald-50 p-3"><p className="text-2xl font-black text-emerald-900">12</p><p className="mt-1 text-[11px] font-bold text-slate-500">heures de révision</p></div>
+                <div className="rounded-2xl bg-amber-50 p-3"><p className="text-2xl font-black text-amber-800">78<span className="text-base">%</span></p><p className="mt-1 text-[11px] font-bold text-slate-500">taux de réussite</p></div>
+              </div>
+              <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full w-[78%] rounded-full bg-emerald-800" /></div>
+              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400"><span>Objectif hebdomadaire</span><span>78%</span></div>
+            </div>
+          </aside>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <FeatureCard icon={Sparkles} title="Résumé intelligent" text="Les idées essentielles, organisées en quelques instants." />
+          <FeatureCard icon={BrainCircuit} title="Assistant IA" text="Posez vos questions et obtenez une explication adaptée à votre niveau." />
+          <FeatureCard icon={Play} title="Quiz personnalisé" text="Testez vos acquis avec des questions basées sur votre support." />
+        </div>
+      </section>
+    </NajahShell>
+  );
 }
 
-function Workspace({ sourceTitle, messages, question, setQuestion, ask, openQuiz }: { sourceTitle: string; messages: {from: "ai" | "me"; text: string}[]; question: string; setQuestion: (v: string) => void; ask: (e: FormEvent) => void; openQuiz: () => void }) {
-  return <section><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="section-kicker">Support analysé</p><h1 className="mt-2 text-4xl font-black text-emerald-950">{sourceTitle}</h1><p className="mt-2 text-sm text-slate-500">2e année bac · Sciences mathématiques · Analyse terminée</p></div><button onClick={openQuiz} className="najah-button-gold"><WandSparkles className="size-5" />Créer un Quiz</button></div><div className="mt-8 grid gap-5 xl:grid-cols-[.72fr_1.5fr_.9fr]"><aside className="space-y-5"><div className="najah-card p-5"><h2 className="flex items-center gap-2 font-black text-emerald-950"><Sparkles className="size-5 text-amber-600" />Outils de révision</h2><div className="mt-5 space-y-2"><button onClick={openQuiz} className="w-full rounded-2xl bg-amber-400 px-4 py-3 text-left font-black text-emerald-950">Créer un Quiz <span className="float-right">→</span></button><button className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left font-bold text-emerald-900">Cartes mémoire <span className="float-right">→</span></button><button className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left font-bold text-emerald-900">Carte mentale <span className="float-right">→</span></button><button className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left font-bold text-emerald-900">Extraire les formules <span className="float-right">→</span></button></div></div><div className="najah-card p-5"><p className="text-xs font-black uppercase tracking-wide text-slate-400">Fichier source</p><div className="mt-3 flex items-center gap-3"><FileText className="size-8 text-red-500" /><div className="min-w-0"><p className="truncate text-sm font-black text-emerald-950">{sourceTitle}</p><p className="text-xs text-slate-500">Support importé</p></div></div></div></aside><article className="najah-card p-6 md:p-8"><div className="flex items-center justify-between border-b border-slate-100 pb-5"><div><p className="text-xs font-black uppercase tracking-wide text-amber-700">Résumé intelligent</p><h2 className="mt-1 text-2xl font-black text-emerald-950">Les limites d’une fonction</h2></div><BookOpen className="size-7 text-emerald-700" /></div><div className="mt-7 space-y-7 text-slate-700"><div><h3 className="font-black text-emerald-900">L’idée essentielle</h3><p className="mt-2 leading-7">La limite décrit le comportement d’une fonction lorsque la variable se rapproche d’une valeur donnée. Elle permet de comprendre la tendance de la courbe avant même d’atteindre le point étudié.</p></div><div><h3 className="font-black text-emerald-900">À retenir</h3><div className="mt-3 grid gap-3 sm:grid-cols-2"><div className="rounded-2xl bg-emerald-50 p-4 text-sm font-bold">La substitution directe fonctionne lorsque la fonction est définie au point étudié.</div><div className="rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-950">En cas de forme indéterminée, il faut factoriser ou simplifier avant de calculer.</div></div></div><div><h3 className="font-black text-emerald-900">Exemple guidé</h3><div className="mt-3 rounded-2xl border border-emerald-100 bg-[#fbfcfa] p-5 font-mono text-sm">lim (x² − 4)/(x − 2) = lim (x + 2) = 4</div></div></div></article><aside className="najah-card flex min-h-[480px] flex-col p-5"><div className="flex items-center gap-3 border-b border-slate-100 pb-4"><span className="grid size-10 place-items-center rounded-2xl bg-emerald-50 text-emerald-800"><Bot /></span><div><h2 className="font-black text-emerald-950">Assistant IA</h2><p className="text-xs text-slate-500">Contexte : ce support</p></div></div><div className="flex-1 space-y-3 overflow-auto py-4">{messages.map((message, index) => <div key={index} className={`max-w-[92%] rounded-2xl p-3 text-sm leading-6 ${message.from === "me" ? "ml-auto bg-amber-50 text-amber-950" : "bg-emerald-50 text-emerald-950"}`}>{message.text}</div>)}</div><form onSubmit={ask} className="mt-auto"><div className="relative"><MessageCircle className="absolute left-3 top-3 size-4 text-slate-400" /><input value={question} onChange={e => setQuestion(e.target.value)} className="najah-input pl-9 pr-12 text-sm" placeholder="Posez une question sur ce cours…" /><button className="absolute right-2 top-2 rounded-xl bg-emerald-900 p-2 text-white"><Send className="size-4" /></button></div></form></aside></div></section>;
+function StudyIllustration() {
+  return <div className="relative hidden min-h-[420px] overflow-hidden rounded-[32px] bg-gradient-to-b from-[#f2f7f2] to-[#fbf8ed] lg:block">
+    <img src="/assets/study-hero-ornament.png" alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-bottom opacity-90" />
+    <div className="absolute inset-x-0 bottom-0 flex items-end justify-center">
+      <img src="/assets/study-hero-illustration.png" alt="Illustration marocaine de livres et de fournitures scolaires" className="relative z-10 h-[430px] w-auto max-w-none object-contain object-bottom drop-shadow-[0_18px_24px_rgba(15,67,55,0.18)]" />
+    </div>
+    <div className="absolute bottom-5 left-5 z-20 rounded-full bg-white/75 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-900/70 shadow-sm backdrop-blur-sm">Apprendre · progresser</div>
+  </div>;
 }
 
-function QuizModal({ answers, setAnswers, done, setDone, score, close }: { answers: number[]; setAnswers: (v: number[]) => void; done: boolean; setDone: (v: boolean) => void; score: number; close: () => void }) {
-  return <div className="fixed inset-0 z-40 grid place-items-center bg-emerald-950/45 p-5 backdrop-blur-sm"><div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-[30px] bg-white p-6 shadow-2xl md:p-8"><div className="flex items-start justify-between"><div><p className="section-kicker">Quiz généré à partir du support</p><h2 className="mt-1 text-3xl font-black text-emerald-950">Vérifiez vos acquis</h2></div><button onClick={close} className="rounded-xl px-3 py-2 text-slate-400 hover:bg-slate-100">Fermer</button></div>{!done ? <div className="mt-7 space-y-5">{starterQuiz.map((item, index) => <div key={index} className="rounded-2xl border border-slate-100 p-5"><p className="font-black text-emerald-950">{index + 1}. {item.question}</p><div className="mt-4 grid gap-2 sm:grid-cols-2">{item.options.map((option, optionIndex) => <button key={option} onClick={() => setAnswers(answers.map((value, i) => i === index ? optionIndex : value))} className={`rounded-xl border p-3 text-left text-sm font-bold ${answers[index] === optionIndex ? "border-emerald-700 bg-emerald-50 text-emerald-900" : "border-slate-200 hover:border-emerald-300"}`}>{option}</button>)}</div></div>)}<button disabled={answers.some(value => value < 0)} onClick={() => setDone(true)} className="najah-button w-full disabled:opacity-40">Voir mon résultat</button></div> : <div className="mt-8 text-center"><CheckCircle2 className="mx-auto size-14 text-emerald-700" /><p className="mt-4 text-5xl font-black text-emerald-950">{score}/{starterQuiz.length}</p><p className="mt-2 text-slate-600">Bonne base. Revoyez les notions signalées et recommencez quand vous voulez.</p><button onClick={close} className="najah-button mt-6">Retour au support</button></div>}</div></div>;
+function FeatureCard({ icon: Icon, title, text }: { icon: typeof Sparkles; title: string; text: string }) {
+  return <div className="najah-card flex items-start gap-3 p-5"><span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-800"><Icon className="size-5" /></span><div><h3 className="font-black text-emerald-950">{title}</h3><p className="mt-1 text-sm leading-6 text-slate-500">{text}</p></div></div>;
 }
