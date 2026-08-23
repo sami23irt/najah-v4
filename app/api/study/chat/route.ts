@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
+import { createGeminiStreamResponse } from "@/lib/gemini-stream";
 import { retrieveDocumentContext } from "@/lib/rag";
 import { rateLimit } from "@/lib/rate-limit";
 import { readJson, requireSameOrigin } from "@/lib/request";
@@ -17,11 +18,11 @@ N'invente jamais une information absente de ces extraits. Si les extraits ne suf
 export async function POST(req: NextRequest) {
   const sameOrigin = requireSameOrigin(req);
   if (sameOrigin) return sameOrigin;
+
   const client = await createRequestClient();
-  const {
-    data: { user },
-  } = await client.auth.getUser();
+  const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: "يجب تسجيل الدخول لاستعمال المساعد الذكي." }, { status: 401 });
+
   const limited = rateLimit(req, { name: "study-chat", limit: 30, windowMs: 10 * 60_000, userId: user.id });
   if (limited) return limited;
 
@@ -38,44 +39,31 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (!doc || doc.status !== "ready") return NextResponse.json({ error: "المستند غير متاح." }, { status: 404 });
 
-  const chunks = await retrieveDocumentContext(question, documentId, 6);
+  let chunks;
+  try {
+    chunks = await retrieveDocumentContext(question, documentId, 6);
+  } catch {
+    return NextResponse.json({ error: "تعذر البحث في المستند حالياً." }, { status: 503 });
+  }
+
   if (chunks.length === 0) {
     return NextResponse.json({
-      answer:
-        locale === "ar"
-          ? "لا أجد في هذا المستند مقتطفاً يغطي سؤالك بدقة. حاول إعادة صياغة السؤال أو اطرح سؤالاً متعلقاً مباشرة بمحتوى الملف."
-          : "Je ne trouve pas d'extrait de ce support qui réponde précisément à votre question. Essayez de la reformuler ou de rester sur le contenu du document.",
+      answer: locale === "ar"
+        ? "لا أجد في هذا المستند مقتطفاً يغطي سؤالك بدقة. حاول إعادة صياغة السؤال أو اطرح سؤالاً متعلقاً مباشرة بمحتوى الملف."
+        : "Je ne trouve pas d'extrait de ce support qui réponde précisément à votre question. Essayez de la reformuler ou de rester sur le contenu du document.",
       grounded: false,
     });
   }
 
-  const contextBlock = chunks.map((c, i) => `[${i + 1}] ${c.content}`).join("\n\n");
-  const geminiResponse = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: GUARDRAIL }] },
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: `Extraits du support :\n${contextBlock}\n\nQuestion de l'élève (${locale === "ar" ? "réponds en arabe" : "réponds en français"}) : ${question}`,
-              },
-            ],
-          },
-        ],
-        generationConfig: { maxOutputTokens: 800 },
-      }),
-    }
-  );
-  if (!geminiResponse.ok) return NextResponse.json({ error: "تعذر توليد الإجابة حالياً." }, { status: 502 });
-
-  const result = await geminiResponse.json();
-  const answer: string =
-    result.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text).join("") ?? "تعذر توليد إجابة قابلة للاستخدام.";
-
-  return NextResponse.json({ answer, grounded: true });
+  const contextBlock = chunks.map((chunk, index) => `[${index + 1}] ${chunk.content}`).join("\n\n");
+  try {
+    return await createGeminiStreamResponse({
+      systemInstruction: GUARDRAIL,
+      prompt: `Extraits du support :\n${contextBlock}\n\nQuestion de l'élève (${locale === "ar" ? "réponds en arabe" : "réponds en français"}) : ${question}`,
+      maxOutputTokens: 800,
+      metadata: { grounded: true },
+    });
+  } catch {
+    return NextResponse.json({ error: "تعذر توليد الإجابة حالياً." }, { status: 502 });
+  }
 }

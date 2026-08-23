@@ -39,5 +39,11 @@ jobs:
       - name: Security audit
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Assistant stream parser
+        run: npm run test:stream
+
+      - name: Image assets
+        run: test -s public/assets/study-hero-illustration.webp && test -s public/assets/study-hero-ornament.webp
+
       - name: Production build
         run: npm run build

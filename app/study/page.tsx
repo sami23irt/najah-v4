@@ -4,6 +4,7 @@ import Image from "next/image";
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { BookOpen, Bot, CheckCircle2, FileText, FileUp, Link2, Loader2, LogIn, MessageCircle, Send, ShieldAlert, Sparkles, WandSparkles, XCircle } from "lucide-react";
 import { NajahShell } from "@/components/NajahShell";
+import { readAssistantResponse } from "@/lib/assistant-stream";
 import { useAuth } from "@/lib/useAuth";
 
 type StudySummary = { mainIdea: string; keyPoints: string[]; workedExample?: string };
@@ -27,6 +28,7 @@ export default function StudyPage() {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [asking, setAsking] = useState(false);
+  const [streamingAnswer, setStreamingAnswer] = useState("");
 
   const [quizOpen, setQuizOpen] = useState(false);
 
@@ -72,9 +74,10 @@ export default function StudyPage() {
 
   const ask = async (event: FormEvent) => {
     event.preventDefault();
-    if (!question.trim() || !documentId) return;
+    if (!question.trim() || !documentId || asking) return;
     const asked = question.trim();
     setQuestion("");
+    setStreamingAnswer("");
     setMessages(current => [...current, { from: "me", text: asked }]);
     setAsking(true);
     try {
@@ -83,11 +86,12 @@ export default function StudyPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ documentId, question: asked, locale: "fr" }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Impossible de répondre.");
+      const data = await readAssistantResponse(res, text => setStreamingAnswer(current => current + text));
       setMessages(current => [...current, { from: "ai", text: data.answer }]);
-    } catch (e) {
-      setMessages(current => [...current, { from: "ai", text: e instanceof Error ? e.message : "Une erreur est survenue." }]);
+      setStreamingAnswer("");
+    } catch (cause) {
+      setStreamingAnswer("");
+      setMessages(current => [...current, { from: "ai", text: cause instanceof Error ? cause.message : "Une erreur est survenue." }]);
     } finally {
       setAsking(false);
     }
@@ -150,8 +154,8 @@ export default function StudyPage() {
             </div>
             <aside className="moroccan-grid relative bg-emerald-950 p-7 text-white md:p-9">
               <div className="relative mb-7 h-48 overflow-hidden rounded-[26px] bg-gradient-to-b from-[#f2f7f2] to-[#fbf8ed]">
-                <Image src="/assets/study-hero-ornament.png" alt="" aria-hidden="true" fill sizes="(max-width: 768px) 100vw, 40vw" className="pointer-events-none object-cover object-bottom opacity-90" />
-                <Image src="/assets/study-hero-illustration.png" alt="Illustration marocaine de livres et de fournitures scolaires" width={1664} height={2080} sizes="(max-width: 768px) 100vw, 40vw" className="absolute inset-x-0 bottom-0 mx-auto h-56 w-auto max-w-none object-contain object-bottom drop-shadow-[0_18px_24px_rgba(15,67,55,0.18)]" />
+                <Image src="/assets/study-hero-ornament.webp" alt="" aria-hidden="true" fill sizes="(max-width: 768px) 100vw, 40vw" className="pointer-events-none object-cover object-bottom opacity-90" />
+                <Image src="/assets/study-hero-illustration.webp" alt="Illustration marocaine de livres et de fournitures scolaires" width={1664} height={2080} sizes="(max-width: 768px) 100vw, 40vw" className="absolute inset-x-0 bottom-0 mx-auto h-56 w-auto max-w-none object-contain object-bottom drop-shadow-[0_18px_24px_rgba(15,67,55,0.18)]" />
               </div>
               <WandSparkles className="size-10 text-amber-300" />
               <h3 className="mt-6 text-2xl font-black">Votre support devient un plan de révision.</h3>
@@ -172,6 +176,7 @@ export default function StudyPage() {
           setQuestion={setQuestion}
           ask={ask}
           asking={asking}
+          streamingAnswer={streamingAnswer}
           openQuiz={() => setQuizOpen(true)}
         />
       )}
@@ -180,7 +185,7 @@ export default function StudyPage() {
   );
 }
 
-function Workspace({ sourceTitle, summary, messages, question, setQuestion, ask, asking, openQuiz }: {
+function Workspace({ sourceTitle, summary, messages, question, setQuestion, ask, asking, streamingAnswer, openQuiz }: {
   sourceTitle: string;
   summary: StudySummary | null;
   messages: ChatMessage[];
@@ -188,6 +193,7 @@ function Workspace({ sourceTitle, summary, messages, question, setQuestion, ask,
   setQuestion: (v: string) => void;
   ask: (e: FormEvent) => void;
   asking: boolean;
+  streamingAnswer: string;
   openQuiz: () => void;
 }) {
   return (
@@ -246,7 +252,7 @@ function Workspace({ sourceTitle, summary, messages, question, setQuestion, ask,
             {messages.map((message, index) => (
               <div key={index} className={`max-w-[92%] whitespace-pre-wrap rounded-2xl p-3 text-sm leading-6 ${message.from === "me" ? "ml-auto bg-amber-50 text-amber-950" : "bg-emerald-50 text-emerald-950"}`}>{message.text}</div>
             ))}
-            {asking && <div className="max-w-[92%] rounded-2xl bg-emerald-50 p-3 text-sm text-emerald-800"><Loader2 className="inline size-4 animate-spin" /> Réflexion…</div>}
+            {asking && <div className="max-w-[92%] rounded-2xl bg-emerald-50 p-3 text-sm text-emerald-800">{streamingAnswer ? <span className="whitespace-pre-wrap">{streamingAnswer}</span> : <><Loader2 className="inline size-4 animate-spin" /> Réflexion…</>}</div>}
           </div>
           <form onSubmit={ask} className="mt-auto">
             <div className="relative">

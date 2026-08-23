@@ -216,16 +216,20 @@ export const leaderboardSnapshots = pgTable(
 );
 
 // ---- RAG: curriculum knowledge base (new — this is what was missing) -------
-export const curriculumDocuments = pgTable("curriculum_documents", {
-  id: serial("id").primaryKey(),
-  title: varchar("title", { length: 255 }).notNull(),
-  level: schoolLevelEnum("level").notNull(),
-  subject: varchar("subject", { length: 120 }).notNull(),
-  sourceType: varchar("source_type", { length: 40 }).notNull(), // "official_curriculum" | "summary" | "textbook_excerpt"
-  sourceUrl: varchar("source_url", { length: 500 }),
-  storagePath: varchar("storage_path", { length: 500 }), // original PDF in Supabase Storage, if any
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const curriculumDocuments = pgTable(
+  "curriculum_documents",
+  {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 255 }).notNull(),
+    level: schoolLevelEnum("level").notNull(),
+    subject: varchar("subject", { length: 120 }).notNull(),
+    sourceType: varchar("source_type", { length: 40 }).notNull(), // "official_curriculum" | "summary" | "textbook_excerpt"
+    sourceUrl: varchar("source_url", { length: 500 }),
+    storagePath: varchar("storage_path", { length: 500 }), // original PDF in Supabase Storage, if any
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  table => ({ levelSubjectIdx: index("curriculum_documents_level_subject_idx").on(table.level, table.subject, table.id) })
+);
 
 export const curriculumChunks = pgTable(
   "curriculum_chunks",

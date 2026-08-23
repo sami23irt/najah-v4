@@ -10,7 +10,9 @@
     "security:audit": "npm audit --omit=dev",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "ingest": "tsx scripts/ingest-curriculum.ts"
+    "ingest": "tsx scripts/ingest-curriculum.ts",
+    "optimize:images": "python3 scripts/optimize-images.py",
+    "test:stream": "tsx scripts/test-assistant-stream.ts"
   },
   "dependencies": {
     "@livekit/components-react": "^2.6.9",
