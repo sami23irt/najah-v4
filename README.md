@@ -1,42 +1,46 @@
 # Najah.ma
 
-**Najah.ma** منصة تعليمية مغربية تساعد التلاميذ على تنظيم المراجعة، الوصول إلى أرشيف الامتحانات، متابعة التقدم، والتعلم بشكل فردي أو تعاوني. صُممت المنصة لتجمع بين مساحة مراجعة شخصية، أدوات دراسة مبنية على محتوى التلميذ، وغرف تفاعلية للدراسة الجماعية.
+**Najah.ma** est une plateforme éducative marocaine conçue pour aider les élèves à organiser leurs révisions, accéder aux archives d’examens, suivre leur progression et étudier seuls ou en groupe.
 
-> الذكاء الاصطناعي في هذا المشروع **ميزة من ميزات المنصة**، وليس هو صاحب المشروع أو تعريفه. يُستخدم لتقديم المساعدة الدراسية، تلخيص المستندات، واقتراح أسئلة انطلاقاً من المحتوى المتاح، بينما تبقى هوية المنتج وتجربة المستخدم والبيانات وقواعد الصلاحيات جزءاً من تطبيق Najah نفسه.
+> L’intelligence artificielle est utilisée comme une **fonctionnalité de la plateforme** pour certaines tâches pédagogiques. Elle n’est pas l’auteur du projet et ne définit pas l’identité de Najah.ma. Le produit, son expérience utilisateur, ses données et ses règles de sécurité appartiennent à l’application Najah.ma.
 
-## ما الذي تقدمه المنصة؟
+## Présentation
 
-تتيح المنصة إنشاء حساب بالبريد الإلكتروني أو Google، اختيار المستوى الدراسي والشعبة، وتخصيص تجربة المراجعة. كما توفر أرشيفاً للامتحانات مع فلاتر حسب المستوى والمادة، ولوحة لمتابعة جلسات الدراسة والمحاولات والنتائج.
+Najah.ma propose un espace de révision personnalisé dans lequel l’élève peut créer son compte, choisir son niveau et sa filière, consulter des ressources adaptées et suivre ses sessions d’étude ainsi que ses résultats.
 
-وتتضمن مساحة الدراسة إمكانية استيراد ملف PDF أو رابط فيديو YouTube، ثم استخراج محتواه وإنشاء ملخص ومحادثة مرتبطة بذلك المحتوى واختبار اختيار من متعدد. وتحتوي الغرف التعاونية على اتصال صوتي ومرئي عبر LiveKit، ومحادثة ومؤقت وسبورة تفاعلية مع صلاحيات خاصة بالمضيف والمشرف.
+La plateforme inclut également un espace d’étude permettant d’importer un document PDF ou un lien YouTube. Le contenu importé peut ensuite être utilisé pour produire un résumé, poser des questions à un assistant pédagogique lié au support et générer un questionnaire à choix multiple.
 
-## الخصائص الرئيسية
+Les élèves peuvent aussi rejoindre des salles d’étude collaboratives avec audio et vidéo, discussion, minuteur partagé et tableau blanc interactif.
 
-| المجال | الوظائف |
+## Fonctionnalités principales
+
+| Domaine | Fonctionnalités |
 |---|---|
-| الحسابات | التسجيل بالبريد الإلكتروني، التحقق من البريد، تسجيل الدخول عبر Google، وإدارة الحساب. |
-| المراجعة | اختيار المستوى والشعبة، جلسات دراسة، لوحة تقدم، ومحاولات اختبارات. |
-| أرشيف الامتحانات | عرض الملفات المنشورة وإنشاء روابط وصول مؤقتة للملفات المتاحة. |
-| مساحة الدراسة | استيراد PDF أو YouTube، استخراج النص، التلخيص، المساعد المرتبط بالمستند، وتوليد الاختبارات. |
-| الدراسة الجماعية | غرف مفتوحة أو خاصة، عضوية وصلاحيات، LiveKit للصوت والفيديو، دردشة، مؤقت، وسبورة. |
-| حماية البيانات | Supabase Auth، PostgreSQL، سياسات Row-Level Security، سجلات تدقيق، وواجهات خادمية للتحقق من العمليات الحساسة. |
+| Comptes | Inscription par e-mail, vérification de l’adresse, connexion avec Google et gestion du compte. |
+| Révision | Choix du niveau et de la filière, sessions d’étude, tableau de progression et historique des tentatives. |
+| Archives | Consultation des examens publiés avec filtrage par niveau et matière. |
+| Espace d’étude | Import de PDF ou de vidéos YouTube, extraction de texte, résumé, assistant lié au support et génération de QCM. |
+| Travail en groupe | Salles ouvertes ou privées, gestion des membres, audio/vidéo LiveKit, discussion, minuteur et tableau blanc. |
+| Protection des données | Supabase Auth, PostgreSQL, Row-Level Security, journaux d’audit et vérification côté serveur des opérations sensibles. |
 
-## البنية التقنية
+## Architecture technique
 
-المشروع تطبيق ويب مبني باستخدام **Next.js App Router** و**React**. تُستخدم **Supabase** للمصادقة وقاعدة PostgreSQL وStorage وRealtime، بينما يُستخدم **pgvector** للبحث الدلالي داخل المحتوى. تعتمد الغرف المرئية والصوتية على **LiveKit**، وتتكامل بعض الميزات الدراسية مع **Gemini** عبر الخادم فقط. تُستخدم **Sentry** لمراقبة الأخطاء، و**PostHog** لتحليل أحداث محددة بعد تقليل البيانات، و**Resend** للبريد transactional عند تفعيله.
+Le projet est une application web construite avec **Next.js App Router**, **React** et **TypeScript**. **Supabase** fournit l’authentification, la base PostgreSQL, le stockage privé et les fonctionnalités Realtime. **pgvector** est utilisé pour la recherche sémantique dans les contenus pédagogiques.
 
-| الطبقة | التقنية |
+Les salles audio et vidéo utilisent **LiveKit**. Certaines fonctions pédagogiques, comme l’assistant, le résumé et la génération de QCM, utilisent **Gemini** côté serveur. Dans cette architecture, l’IA est donc un service intégré à l’application et non le créateur du produit.
+
+| Couche | Technologie |
 |---|---|
-| الواجهة والخادم | Next.js، React، TypeScript |
-| المصادقة والبيانات | Supabase Auth، PostgreSQL، Supabase Storage، Supabase Realtime |
-| البحث الدلالي | pgvector وواجهات RAG خادمية |
-| الصوت والفيديو | LiveKit Server SDK وLiveKit Client |
-| التحقق من المدخلات | Zod في مسارات API |
-| المراقبة والبريد | Sentry، PostHog، Resend |
+| Interface et serveur | Next.js, React, TypeScript |
+| Authentification et données | Supabase Auth, PostgreSQL, Supabase Storage, Supabase Realtime |
+| Recherche sémantique | pgvector et pipeline RAG côté serveur |
+| Audio et vidéo | LiveKit Server SDK et LiveKit Client |
+| Validation des entrées | Zod dans les routes API |
+| Observabilité et e-mails | Sentry, PostHog et Resend |
 
-## التشغيل محلياً
+## Installation locale
 
-يتطلب التشغيل Node.js وnpm ومشروع Supabase. بعد إنشاء المشروع:
+Prérequis : Node.js, npm et un projet Supabase.
 
 ```bash
 cp .env.example .env.local
@@ -44,11 +48,13 @@ npm install
 npm run dev
 ```
 
-ثم افتح [http://localhost:3000](http://localhost:3000). يلزم إدخال متغيرات Supabase في `.env.local` حتى تعمل المصادقة والبيانات الحقيقية.
+L’application est ensuite disponible à l’adresse [http://localhost:3000](http://localhost:3000).
 
-## متغيرات البيئة
+Pour activer l’authentification et les données réelles, renseignez les variables Supabase dans `.env.local`. Les fonctionnalités audio/vidéo nécessitent également une configuration LiveKit.
 
-انسخ `.env.example` إلى `.env.local` ثم املأ القيم المناسبة:
+## Variables d’environnement
+
+Copiez `.env.example` vers `.env.local`, puis renseignez les valeurs adaptées à votre environnement :
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=
@@ -62,21 +68,23 @@ NEXT_PUBLIC_POSTHOG_KEY=
 NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
 ```
 
-لا تضع ملف `.env.local` أو أي مفتاح سري في Git. المفتاح الوحيد الذي يمكن أن يصل إلى المتصفح هو مفتاح Supabase العام `NEXT_PUBLIC_SUPABASE_ANON_KEY`؛ أما `SUPABASE_SERVICE_ROLE_KEY` و`GEMINI_API_KEY` و`RESEND_API_KEY` فتبقى على الخادم فقط.
+Ne commitez jamais `.env.local` ni une clé secrète dans Git. La clé `NEXT_PUBLIC_SUPABASE_ANON_KEY` est une clé publique destinée au navigateur. Les clés `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` et `RESEND_API_KEY` doivent rester exclusivement côté serveur.
 
-## قاعدة البيانات والهجرات
+## Base de données et migrations
 
-توجد هجرات Supabase في `supabase/migrations/`. طبّقها على مشروع Supabase باستخدام أدوات Supabase الرسمية أو عبر بيئة النشر المعتمدة. لا تطبق هجرة على قاعدة الإنتاج قبل مراجعتها وأخذ نسخة احتياطية مناسبة.
+Les migrations Supabase se trouvent dans `supabase/migrations/`. Appliquez-les avec les outils officiels Supabase ou dans l’environnement de déploiement prévu. Examinez toujours une migration et sauvegardez la base avant de la déployer en production.
 
-توجد أيضاً تعريفات Drizzle في `drizzle/schema.ts` لأغراض الاتساق والأنواع. عند تغيير بنية البيانات، حدّث تعريفات Drizzle والهجرة المقابلة معاً.
+Les définitions de tables et de types utilisées par Drizzle se trouvent dans `drizzle/schema.ts`. Toute modification de structure doit garder les définitions Drizzle et les migrations SQL cohérentes.
 
-## الأمان
+## Sécurité
 
-يعتمد المشروع على المصادقة الخادمية، وسياسات **Row-Level Security** لعزل بيانات المستخدمين، وعميل service-role في الخادم فقط. كما تتحقق مسارات API من المدخلات باستخدام Zod، وتحتسب نتائج الاختبارات على الخادم، وتفرض قيوداً على رفع ملفات PDF، وتستخدم روابط Storage موقعة ومؤقتة للملفات.
+Les opérations sensibles sont protégées par une authentification côté serveur et les données utilisateur sont isolées par des politiques **Row-Level Security**. Les routes API valident les entrées avec Zod, les résultats des QCM sont calculés côté serveur et les fichiers PDF sont contrôlés avant leur traitement.
 
-أضيفت أيضاً ترويسات أمان، وخصائص آمنة لجلسات Supabase، وتحديد معدل للطلبات على المسارات الحساسة، وفحص توقيع PDF قبل المعالجة. يجب مع ذلك ضبط إعدادات Supabase وLiveKit وموفر النشر، وتدوير أي مفتاح سبق نشره خارج البيئة السرية.
+Le projet comprend également des en-têtes de sécurité, des cookies de session configurés pour le serveur, une limitation du débit sur les routes sensibles, des réponses API réduites et des liens de stockage temporaires pour les fichiers privés.
 
-## أوامر مفيدة
+Les paramètres de production doivent toutefois être configurés correctement dans Supabase, LiveKit et le fournisseur de déploiement. Les clés qui auraient déjà été exposées doivent être révoquées et remplacées.
+
+## Commandes utiles
 
 ```bash
 npm run dev
@@ -87,20 +95,20 @@ npm run db:push
 npm run ingest
 ```
 
-يستعمل `npm run ingest` لتلقيم محتوى المنهج بعد تجهيز النصوص وفق سكربت التلقيم الموجود في `scripts/ingest-curriculum.ts`.
+La commande `npm run ingest` sert à alimenter la base de connaissances après préparation des textes, selon le script `scripts/ingest-curriculum.ts`.
 
-## تنظيم المجلدات
+## Organisation du projet
 
 ```text
-app/                 صفحات Next.js ومسارات API
-components/          مكونات الواجهة والغرف
-lib/                 عملاء Supabase وخدمات الدراسة وRAG والمراقبة
-drizzle/             تعريفات الجداول والأنواع
-supabase/migrations/ هجرات قاعدة البيانات وسياسات RLS
-scripts/             أدوات التلقيم والصيانة
-public/              أصول صغيرة ثابتة للواجهة
+app/                  Pages Next.js et routes API
+components/           Composants d’interface et de salles
+lib/                  Clients Supabase et services d’étude, RAG et observabilité
+drizzle/              Définitions des tables et des types
+supabase/migrations/  Migrations SQL et politiques RLS
+scripts/              Outils d’ingestion et de maintenance
+public/               Ressources statiques légères de l’interface
 ```
 
-## حالة المشروع
+## État du projet
 
-Najah.ma مشروع قيد التطوير. قبل الإطلاق العام ينبغي مراجعة إعدادات المصادقة والبريد، ضبط حماية الروبوتات والحد من محاولات تسجيل الدخول من خلال مزود المصادقة أو طبقة موزعة، تحديث الاعتماديات، اختبار البناء في بيئة CI، ومراجعة متطلبات الخصوصية الخاصة ببيانات التلاميذ.
+Najah.ma est un projet en cours de développement. Avant une ouverture publique, il est recommandé de finaliser la configuration de l’authentification et des e-mails, d’ajouter une protection anti-robot et une limitation distribuée des tentatives de connexion, de mettre à jour les dépendances, de valider le build dans une CI et de revoir les exigences de confidentialité liées aux données des élèves.
