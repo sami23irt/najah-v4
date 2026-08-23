@@ -1,72 +1,106 @@
-# Najah.ma — v2 (معمارية مطابقة للوثيقة)
+# Najah.ma
 
-هذا ليس تعديلاً على الكود القديم بل بداية إعادة بناء حسب الأولويات التالية،
-مبنية فوق **Next.js + Supabase (Postgres/pgvector) + LiveKit + Gemini**، بدل
-معمارية Manus الخاصة السابقة (Vite + tRPC + MySQL + Socket.io فقط).
+**Najah.ma** منصة تعليمية مغربية تساعد التلاميذ على تنظيم المراجعة، الوصول إلى أرشيف الامتحانات، متابعة التقدم، والتعلم بشكل فردي أو تعاوني. صُممت المنصة لتجمع بين مساحة مراجعة شخصية، أدوات دراسة مبنية على محتوى التلميذ، وغرف تفاعلية للدراسة الجماعية.
 
-## ما تم إنجازه فعليًا في هذه الدفعة (مبني ومختبر منطقيًا، غير مُشغَّل فعليًا هنا لعدم توفر إنترنت)
+> الذكاء الاصطناعي في هذا المشروع **ميزة من ميزات المنصة**، وليس هو صاحب المشروع أو تعريفه. يُستخدم لتقديم المساعدة الدراسية، تلخيص المستندات، واقتراح أسئلة انطلاقاً من المحتوى المتاح، بينما تبقى هوية المنتج وتجربة المستخدم والبيانات وقواعد الصلاحيات جزءاً من تطبيق Najah نفسه.
 
-0. **صفحات الواجهة كاملة على Next.js App Router** (`app/*`) — الصفحة الرئيسية، الأرشيف مع الفلاتر، القارئ المزدوج، المساعد الذكي، الغرف (قائمة + غرفة فيديو)، لوحة التقدم، الملف الشخصي
-   - الدردشة والمؤقت المتزامن أصبحا عبر **Supabase Realtime** (`lib/useRoomRealtime.ts`) بدل Socket.io/سيرفر منفصل — متجانس مع بقية المعمارية بلا حاجة لعملية خادم إضافية
-   - رمز الدخول للغرف الخاصة يُشفَّر (`sha256`) داخل دالة SQL `create_study_room`، ولا يُخزَّن أو يُرسل كنص صريح أبدًا (`0003_room_rpcs.sql`)
+## ما الذي تقدمه المنصة؟
 
-1. **RAG حقيقي** (`lib/rag.ts`, `app/api/copilot/route.ts`, `supabase/migrations/0001_rag_and_rls.sql`)
-   - تقسيم النص إلى مقاطع (`chunkText`)
-   - تضمين المقاطع عبر Gemini `gemini-embedding-001` وتخزينها في `curriculum_chunks` (pgvector)
-   - الاسترجاع عبر دالة SQL `match_curriculum_chunks` (تشابه جيبي، ivfflat index)
-   - **قاعدة الجودة من الوثيقة مطبّقة فعليًا**: إذا كان التشابه أقل من 0.72، يرفض المساعد الإجابة بدل الاختلاق (`MIN_SIMILARITY`)
-   - سكريبت تلقيم (`scripts/ingest-curriculum.ts`) لملء قاعدة المعرفة
+تتيح المنصة إنشاء حساب بالبريد الإلكتروني أو Google، اختيار المستوى الدراسي والشعبة، وتخصيص تجربة المراجعة. كما توفر أرشيفاً للامتحانات مع فلاتر حسب المستوى والمادة، ولوحة لمتابعة جلسات الدراسة والمحاولات والنتائج.
 
-2. **غرف فيديو/صوت حقيقية عبر LiveKit** (`app/api/rooms/token/route.ts`, `components/VideoRoom.tsx`)
-   - توليد token من الخادم فقط بعد التحقق من العضوية (لا يمكن لأي شخص الحصول على token لغرفة لم ينضم إليها)
-   - صلاحيات مشرف (كتم/إدارة) للـ host والـ moderator فقط، مطابقةً لقسم 3.5 من الوثيقة
+وتتضمن مساحة الدراسة إمكانية استيراد ملف PDF أو رابط فيديو YouTube، ثم استخراج محتواه وإنشاء ملخص ومحادثة مرتبطة بذلك المحتوى واختبار اختيار من متعدد. وتحتوي الغرف التعاونية على اتصال صوتي ومرئي عبر LiveKit، ومحادثة ومؤقت وسبورة تفاعلية مع صلاحيات خاصة بالمضيف والمشرف.
 
-3. **قاعدة بيانات PostgreSQL/Supabase** (`drizzle/schema.ts`)
-   - ترحيل كامل من MySQL، مع RLS مفعّلة على كل جدول حساس (`0001_rag_and_rls.sql`)
-   - جداول RAG الجديدة: `curriculum_documents`, `curriculum_chunks`
+## الخصائص الرئيسية
 
-4. **إصلاح خطأ لوحة الشرف** (`lib/leaderboard.ts`, `app/api/dashboard/record/route.ts`, `0002_leaderboard_cron.sql`)
-   - `refreshLeaderboardForUser` يُستدعى الآن فعليًا بعد كل جلسة/محاولة QCM
-   - مهمة `pg_cron` ليلية كنسخة احتياطية
+| المجال | الوظائف |
+|---|---|
+| الحسابات | التسجيل بالبريد الإلكتروني، التحقق من البريد، تسجيل الدخول عبر Google، وإدارة الحساب. |
+| المراجعة | اختيار المستوى والشعبة، جلسات دراسة، لوحة تقدم، ومحاولات اختبارات. |
+| أرشيف الامتحانات | عرض الملفات المنشورة وإنشاء روابط وصول مؤقتة للملفات المتاحة. |
+| مساحة الدراسة | استيراد PDF أو YouTube، استخراج النص، التلخيص، المساعد المرتبط بالمستند، وتوليد الاختبارات. |
+| الدراسة الجماعية | غرف مفتوحة أو خاصة، عضوية وصلاحيات، LiveKit للصوت والفيديو، دردشة، مؤقت، وسبورة. |
+| حماية البيانات | Supabase Auth، PostgreSQL، سياسات Row-Level Security، سجلات تدقيق، وواجهات خادمية للتحقق من العمليات الحساسة. |
 
-## ما أُضيف في النسخة الحالية
+## البنية التقنية
 
-- **السبورة التفاعلية** داخل غرفة LiveKit، مع مزامنة strokes وعمليات المسح عبر DataChannel موثوق.
-- **حذف الحساب** من صفحة الملف الشخصي عبر endpoint خادمي يستعمل Supabase Admin، مع الحفاظ على سجل حدث الحذف في `audit_logs`.
-- **Audit logs** للأحداث الحساسة: إنشاء الغرف، تغييرات أدوار الأعضاء، تغييرات المؤقت، وحصول ملفات الامتحانات على روابط موقعة، إضافة إلى حذف الحساب.
-- **مولد MCQ كامل**: استرجاع RAG → توليد JSON والتحقق منه → تخزين الإجابات الصحيحة على الخادم → تصحيح النتيجة خادميًا → حفظ `quiz_attempts`.
-- **إغلاق ثغرة مهمة**: endpoint تسجيل النشاط لم يعد يقبل من العميل نتيجة Quiz مزورة؛ محاولات MCQ تُسجل فقط بعد إنهاء `quiz_session` على الخادم.
+المشروع تطبيق ويب مبني باستخدام **Next.js App Router** و**React**. تُستخدم **Supabase** للمصادقة وقاعدة PostgreSQL وStorage وRealtime، بينما يُستخدم **pgvector** للبحث الدلالي داخل المحتوى. تعتمد الغرف المرئية والصوتية على **LiveKit**، وتتكامل بعض الميزات الدراسية مع **Gemini** عبر الخادم فقط. تُستخدم **Sentry** لمراقبة الأخطاء، و**PostHog** لتحليل أحداث محددة بعد تقليل البيانات، و**Resend** للبريد transactional عند تفعيله.
 
+| الطبقة | التقنية |
+|---|---|
+| الواجهة والخادم | Next.js، React، TypeScript |
+| المصادقة والبيانات | Supabase Auth، PostgreSQL، Supabase Storage، Supabase Realtime |
+| البحث الدلالي | pgvector وواجهات RAG خادمية |
+| الصوت والفيديو | LiveKit Server SDK وLiveKit Client |
+| التحقق من المدخلات | Zod في مسارات API |
+| المراقبة والبريد | Sentry، PostHog، Resend |
 
-## الإعداد
+## التشغيل محلياً
 
-1. أنشئ مشروع Supabase، فعّل `pgvector` (يحدث تلقائيًا عبر migration 0001)
-2. طبّق الترحيلات: `supabase db push` أو نفّذ ملفات `supabase/migrations/*.sql` يدويًا
-3. أنشئ مشروع LiveKit Cloud (أو استضافة ذاتية) واحصل على المفاتيح
-4. انسخ `.env.example` إلى `.env.local` واملأ القيم
-5. `npm install && npm run dev`
-6. لتلقيم المقرر: استخرج نص PDF (مثلاً بـ `pdftotext`) ثم `pnpm ingest --file ... --title ... --level 2BAC --subject الرياضيات`
+يتطلب التشغيل Node.js وnpm ومشروع Supabase. بعد إنشاء المشروع:
 
-## تنبيه أمني من الفحص السابق
+```bash
+cp .env.example .env.local
+npm install
+npm run dev
+```
 
-ملف `.project-config.json` القديم كان يحتوي أسرارًا حقيقية (كلمة سر DB، JWT secret، مفاتيح API).
-إذا كنت شاركته سابقًا في أي مكان، غيّر هذه الأسرار من مصدرها الآن — هذا المشروع الجديد لا يحتوي عليها.
+ثم افتح [http://localhost:3000](http://localhost:3000). يلزم إدخال متغيرات Supabase في `.env.local` حتى تعمل المصادقة والبيانات الحقيقية.
 
-## إصلاحات لاحقة (migrations 0006–0008)
+## متغيرات البيئة
 
-- أعيد ترقيم `0005_security_hardening.sql` إلى `0006_security_hardening.sql` و`0006_compliance_quizzes_whiteboard.sql` إلى `0007_compliance_quizzes_whiteboard.sql` لحل تعارض وجود ملفين بنفس الرقم `0005`.
-- `0008_fix_room_insert_policy.sql`: حذف سياسة RLS التي كانت تسمح بإدراج صف مباشر في `study_rooms` من العميل متجاوزة كل التحقق الموجود في `create_study_room()` (طول الاسم، إلزامية رمز مرور مشفّر للغرف الخاصة) ودون إضافة العضوية في `room_members`. الإنشاء الآن يمر حصراً عبر `create_study_room()`.
+انسخ `.env.example` إلى `.env.local` ثم املأ القيم المناسبة:
 
-## إضافة connectors (Sentry + Resend + PostHog)
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=
+GEMINI_API_KEY=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+NEXT_PUBLIC_POSTHOG_KEY=
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+```
 
-- **Sentry**: مشروع `najah-ma` تخلق تحت تنظيم `iratta`. تتبع الأخطاء مفعّل على العميل والسيرفر وEdge (`instrumentation.ts`, `sentry.*.config.ts`) مع `global-error.tsx` كحدّ أخير للأخطاء غير الملتقطة. `tracesSampleRate` مضبوط على 0.1 (10%) عمداً — الغرف تستعمل جلسات LiveKit طويلة، وتتبع 100% سيكون مكلفاً وغير مفيد. Session Replay **معطّل** لأن التطبيق يحتوي بيانات تلاميذ حساسة (نتائج، أسئلة) وتفعيله يحتاج مراجعة خصوصية منفصلة.
-- **Resend**: مفتاح API بصلاحية `sending_access` تم إنشاؤه (`najah-ma-transactional`). `lib/email.ts` يرسل بريد تأكيد عند حذف الحساب (`account_deleted`) ودعوات الغرف الخاصة. **لا يوجد نطاق موثّق بعد** — الإرسال الحالي يمر عبر `onboarding@resend.dev` المشترك، الذي لا يقدر يرسل إلا لعنوان صاحب حساب Resend نفسه. قبل الإطلاق الحقيقي: وثّق نطاق (مثلاً `najah.ma`) في Resend واضبط `RESEND_FROM_EMAIL`.
-- **PostHog**: مشروع "Default project" الموجود مسبقاً فمنظمة "Iratta project" (EU region). `autocapture` **معطّل** عمداً (منصة تلاميذ — بغينا أحداث محددة، ماشي كل نقرة). الأحداث المتتبَّعة حالياً: `study_session_recorded`، `quiz_submitted`، `room_created`، `account_deleted`. الربط بين أحداث العميل والسيرفر يتم عبر `posthog.identify(user.id)` بلا إرسال إيميل أو اسم (تقليل بيانات الأشخاص لمنصة يستعملها قاصرون).
+لا تضع ملف `.env.local` أو أي مفتاح سري في Git. المفتاح الوحيد الذي يمكن أن يصل إلى المتصفح هو مفتاح Supabase العام `NEXT_PUBLIC_SUPABASE_ANON_KEY`؛ أما `SUPABASE_SERVICE_ROLE_KEY` و`GEMINI_API_KEY` و`RESEND_API_KEY` فتبقى على الخادم فقط.
 
-## Security hardening notes
+## قاعدة البيانات والهجرات
 
-- Apply `supabase/migrations/0005_security_hardening.sql` after the existing migrations.
-- Room timer writes must use `set_room_timer`; there is no broad client UPDATE policy on `study_rooms`.
-- Study durations are derived server-side by `record_study_session`; clients cannot choose the stored `duration_minutes`.
-- Realtime room channels are private and Presence is authorized only for authenticated room members. Keep Supabase Realtime **Allow public access** disabled in production.
-- LiveKit join tokens are short-lived and restrict published media sources; only hosts/moderators receive `roomAdmin`.
+توجد هجرات Supabase في `supabase/migrations/`. طبّقها على مشروع Supabase باستخدام أدوات Supabase الرسمية أو عبر بيئة النشر المعتمدة. لا تطبق هجرة على قاعدة الإنتاج قبل مراجعتها وأخذ نسخة احتياطية مناسبة.
+
+توجد أيضاً تعريفات Drizzle في `drizzle/schema.ts` لأغراض الاتساق والأنواع. عند تغيير بنية البيانات، حدّث تعريفات Drizzle والهجرة المقابلة معاً.
+
+## الأمان
+
+يعتمد المشروع على المصادقة الخادمية، وسياسات **Row-Level Security** لعزل بيانات المستخدمين، وعميل service-role في الخادم فقط. كما تتحقق مسارات API من المدخلات باستخدام Zod، وتحتسب نتائج الاختبارات على الخادم، وتفرض قيوداً على رفع ملفات PDF، وتستخدم روابط Storage موقعة ومؤقتة للملفات.
+
+أضيفت أيضاً ترويسات أمان، وخصائص آمنة لجلسات Supabase، وتحديد معدل للطلبات على المسارات الحساسة، وفحص توقيع PDF قبل المعالجة. يجب مع ذلك ضبط إعدادات Supabase وLiveKit وموفر النشر، وتدوير أي مفتاح سبق نشره خارج البيئة السرية.
+
+## أوامر مفيدة
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run db:generate
+npm run db:push
+npm run ingest
+```
+
+يستعمل `npm run ingest` لتلقيم محتوى المنهج بعد تجهيز النصوص وفق سكربت التلقيم الموجود في `scripts/ingest-curriculum.ts`.
+
+## تنظيم المجلدات
+
+```text
+app/                 صفحات Next.js ومسارات API
+components/          مكونات الواجهة والغرف
+lib/                 عملاء Supabase وخدمات الدراسة وRAG والمراقبة
+drizzle/             تعريفات الجداول والأنواع
+supabase/migrations/ هجرات قاعدة البيانات وسياسات RLS
+scripts/             أدوات التلقيم والصيانة
+public/              أصول صغيرة ثابتة للواجهة
+```
+
+## حالة المشروع
+
+Najah.ma مشروع قيد التطوير. قبل الإطلاق العام ينبغي مراجعة إعدادات المصادقة والبريد، ضبط حماية الروبوتات والحد من محاولات تسجيل الدخول من خلال مزود المصادقة أو طبقة موزعة، تحديث الاعتماديات، اختبار البناء في بيئة CI، ومراجعة متطلبات الخصوصية الخاصة ببيانات التلاميذ.
