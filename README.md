@@ -2,7 +2,6 @@
 
 **Najah.ma** est une plateforme éducative marocaine conçue pour aider les élèves à organiser leurs révisions, accéder aux archives d’examens, suivre leur progression et étudier seuls ou en groupe.
 
-> L’intelligence artificielle est utilisée comme une **fonctionnalité de la plateforme** pour certaines tâches pédagogiques. Elle n’est pas l’auteur du projet et ne définit pas l’identité de Najah.ma. Le produit, son expérience utilisateur, ses données et ses règles de sécurité appartiennent à l’application Najah.ma.
 
 ## Présentation
 
