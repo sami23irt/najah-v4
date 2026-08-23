@@ -16,6 +16,14 @@ body { min-height: 100vh; background: var(--najah-cream); }
 button, input, select, textarea { font: inherit; }
 button { transition: transform 160ms ease-out, box-shadow 160ms ease-out, background-color 160ms ease-out; }
 button:active { transform: scale(.98); }
+:where(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid var(--najah-gold); outline-offset: 3px; }
+.skip-link { position: fixed; left: 1rem; top: 1rem; z-index: 100; transform: translateY(-200%); border-radius: .75rem; background: var(--najah-deep); color: white; padding: .75rem 1rem; font-weight: 800; transition: transform 160ms ease-out; }
+.skip-link:focus { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
 
 .section-kicker {
   @apply text-xs font-black uppercase tracking-[0.18em] text-amber-700;

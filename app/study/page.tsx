@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { BookOpen, Bot, CheckCircle2, FileText, FileUp, Link2, Loader2, LogIn, MessageCircle, Send, ShieldAlert, Sparkles, WandSparkles, XCircle } from "lucide-react";
 import { NajahShell } from "@/components/NajahShell";
@@ -131,7 +132,7 @@ export default function StudyPage() {
                 <p className="mt-2 text-sm text-slate-500">ou choisissez un fichier depuis votre appareil</p>
                 <label className="najah-button mt-5 cursor-pointer">
                   <FileText className="size-4" />Choisir un PDF
-                  <input type="file" accept="application/pdf" onChange={importFile} className="hidden" />
+                  <input type="file" accept="application/pdf" onChange={importFile} className="hidden" aria-label="Choisir un fichier PDF à analyser" />
                 </label>
                 {fileName && <p className="mt-4 rounded-xl bg-white p-3 text-sm font-bold text-emerald-800"><CheckCircle2 className="mr-1 inline size-4" />{fileName}</p>}
               </div>
@@ -139,7 +140,7 @@ export default function StudyPage() {
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Link2 className="absolute left-4 top-3.5 size-5 text-slate-400" />
-                  <input value={youtubeUrl} onChange={e => { setYoutubeUrl(e.target.value); setSelectedFile(null); setFileName(""); }} className="najah-input pl-12" placeholder="Collez un lien YouTube" />
+                  <input id="youtube-url" type="url" value={youtubeUrl} onChange={e => { setYoutubeUrl(e.target.value); setSelectedFile(null); setFileName(""); }} className="najah-input pl-12" placeholder="Collez un lien YouTube" aria-label="Lien de la vidéo YouTube" />
                 </div>
                 <button onClick={analyze} disabled={busy || (!selectedFile && !youtubeUrl)} className="najah-button shrink-0 disabled:opacity-40">
                   {busy ? <><Loader2 className="size-4 animate-spin" />Analyse…</> : "Analyser"}
@@ -149,8 +150,8 @@ export default function StudyPage() {
             </div>
             <aside className="moroccan-grid relative bg-emerald-950 p-7 text-white md:p-9">
               <div className="relative mb-7 h-48 overflow-hidden rounded-[26px] bg-gradient-to-b from-[#f2f7f2] to-[#fbf8ed]">
-                <img src="/assets/study-hero-ornament.png" alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover object-bottom opacity-90" />
-                <img src="/assets/study-hero-illustration.png" alt="Illustration marocaine de livres et de fournitures scolaires" className="absolute inset-x-0 bottom-0 mx-auto h-56 w-auto max-w-none object-contain object-bottom drop-shadow-[0_18px_24px_rgba(15,67,55,0.18)]" />
+                <Image src="/assets/study-hero-ornament.png" alt="" aria-hidden="true" fill sizes="(max-width: 768px) 100vw, 40vw" className="pointer-events-none object-cover object-bottom opacity-90" />
+                <Image src="/assets/study-hero-illustration.png" alt="Illustration marocaine de livres et de fournitures scolaires" width={1664} height={2080} sizes="(max-width: 768px) 100vw, 40vw" className="absolute inset-x-0 bottom-0 mx-auto h-56 w-auto max-w-none object-contain object-bottom drop-shadow-[0_18px_24px_rgba(15,67,55,0.18)]" />
               </div>
               <WandSparkles className="size-10 text-amber-300" />
               <h3 className="mt-6 text-2xl font-black">Votre support devient un plan de révision.</h3>
@@ -250,8 +251,8 @@ function Workspace({ sourceTitle, summary, messages, question, setQuestion, ask,
           <form onSubmit={ask} className="mt-auto">
             <div className="relative">
               <MessageCircle className="absolute left-3 top-3 size-4 text-slate-400" />
-              <input value={question} onChange={e => setQuestion(e.target.value)} disabled={asking} className="najah-input pl-9 pr-12 text-sm" placeholder="Posez une question sur ce cours…" />
-              <button disabled={asking || !question.trim()} className="absolute right-2 top-2 rounded-xl bg-emerald-900 p-2 text-white disabled:opacity-40"><Send className="size-4" /></button>
+              <input id="study-question" value={question} onChange={e => setQuestion(e.target.value)} disabled={asking} className="najah-input pl-9 pr-12 text-sm" placeholder="Posez une question sur ce cours…" aria-label="Question à poser sur le cours" />
+              <button type="submit" disabled={asking || !question.trim()} aria-label="Envoyer la question" className="absolute right-2 top-2 rounded-xl bg-emerald-900 p-2 text-white disabled:opacity-40"><Send className="size-4" aria-hidden="true" /></button>
             </div>
           </form>
         </aside>
