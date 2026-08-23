@@ -1,72 +1,114 @@
-# Najah.ma — v2 (معمارية مطابقة للوثيقة)
+# Najah.ma
 
-هذا ليس تعديلاً على الكود القديم بل بداية إعادة بناء حسب الأولويات التالية،
-مبنية فوق **Next.js + Supabase (Postgres/pgvector) + LiveKit + Gemini**، بدل
-معمارية Manus الخاصة السابقة (Vite + tRPC + MySQL + Socket.io فقط).
+**Najah.ma** est une plateforme éducative marocaine conçue pour aider les élèves à organiser leurs révisions, accéder aux archives d’examens, suivre leur progression et étudier seuls ou en groupe.
 
-## ما تم إنجازه فعليًا في هذه الدفعة (مبني ومختبر منطقيًا، غير مُشغَّل فعليًا هنا لعدم توفر إنترنت)
+> L’intelligence artificielle est utilisée comme une **fonctionnalité de la plateforme** pour certaines tâches pédagogiques. Elle n’est pas l’auteur du projet et ne définit pas l’identité de Najah.ma. Le produit, son expérience utilisateur, ses données et ses règles de sécurité appartiennent à l’application Najah.ma.
 
-0. **صفحات الواجهة كاملة على Next.js App Router** (`app/*`) — الصفحة الرئيسية، الأرشيف مع الفلاتر، القارئ المزدوج، المساعد الذكي، الغرف (قائمة + غرفة فيديو)، لوحة التقدم، الملف الشخصي
-   - الدردشة والمؤقت المتزامن أصبحا عبر **Supabase Realtime** (`lib/useRoomRealtime.ts`) بدل Socket.io/سيرفر منفصل — متجانس مع بقية المعمارية بلا حاجة لعملية خادم إضافية
-   - رمز الدخول للغرف الخاصة يُشفَّر (`sha256`) داخل دالة SQL `create_study_room`، ولا يُخزَّن أو يُرسل كنص صريح أبدًا (`0003_room_rpcs.sql`)
+## Présentation
 
-1. **RAG حقيقي** (`lib/rag.ts`, `app/api/copilot/route.ts`, `supabase/migrations/0001_rag_and_rls.sql`)
-   - تقسيم النص إلى مقاطع (`chunkText`)
-   - تضمين المقاطع عبر Gemini `gemini-embedding-001` وتخزينها في `curriculum_chunks` (pgvector)
-   - الاسترجاع عبر دالة SQL `match_curriculum_chunks` (تشابه جيبي، ivfflat index)
-   - **قاعدة الجودة من الوثيقة مطبّقة فعليًا**: إذا كان التشابه أقل من 0.72، يرفض المساعد الإجابة بدل الاختلاق (`MIN_SIMILARITY`)
-   - سكريبت تلقيم (`scripts/ingest-curriculum.ts`) لملء قاعدة المعرفة
+Najah.ma propose un espace de révision personnalisé dans lequel l’élève peut créer son compte, choisir son niveau et sa filière, consulter des ressources adaptées et suivre ses sessions d’étude ainsi que ses résultats.
 
-2. **غرف فيديو/صوت حقيقية عبر LiveKit** (`app/api/rooms/token/route.ts`, `components/VideoRoom.tsx`)
-   - توليد token من الخادم فقط بعد التحقق من العضوية (لا يمكن لأي شخص الحصول على token لغرفة لم ينضم إليها)
-   - صلاحيات مشرف (كتم/إدارة) للـ host والـ moderator فقط، مطابقةً لقسم 3.5 من الوثيقة
+La plateforme inclut également un espace d’étude permettant d’importer un document PDF ou un lien YouTube. Le contenu importé peut ensuite être utilisé pour produire un résumé, poser des questions à un assistant pédagogique lié au support et générer un questionnaire à choix multiple.
 
-3. **قاعدة بيانات PostgreSQL/Supabase** (`drizzle/schema.ts`)
-   - ترحيل كامل من MySQL، مع RLS مفعّلة على كل جدول حساس (`0001_rag_and_rls.sql`)
-   - جداول RAG الجديدة: `curriculum_documents`, `curriculum_chunks`
+Les élèves peuvent aussi rejoindre des salles d’étude collaboratives avec audio et vidéo, discussion, minuteur partagé et tableau blanc interactif.
 
-4. **إصلاح خطأ لوحة الشرف** (`lib/leaderboard.ts`, `app/api/dashboard/record/route.ts`, `0002_leaderboard_cron.sql`)
-   - `refreshLeaderboardForUser` يُستدعى الآن فعليًا بعد كل جلسة/محاولة QCM
-   - مهمة `pg_cron` ليلية كنسخة احتياطية
+## Fonctionnalités principales
 
-## ما أُضيف في النسخة الحالية
+| Domaine | Fonctionnalités |
+|---|---|
+| Comptes | Inscription par e-mail, vérification de l’adresse, connexion avec Google et gestion du compte. |
+| Révision | Choix du niveau et de la filière, sessions d’étude, tableau de progression et historique des tentatives. |
+| Archives | Consultation des examens publiés avec filtrage par niveau et matière. |
+| Espace d’étude | Import de PDF ou de vidéos YouTube, extraction de texte, résumé, assistant lié au support et génération de QCM. |
+| Travail en groupe | Salles ouvertes ou privées, gestion des membres, audio/vidéo LiveKit, discussion, minuteur et tableau blanc. |
+| Protection des données | Supabase Auth, PostgreSQL, Row-Level Security, journaux d’audit et vérification côté serveur des opérations sensibles. |
 
-- **السبورة التفاعلية** داخل غرفة LiveKit، مع مزامنة strokes وعمليات المسح عبر DataChannel موثوق.
-- **حذف الحساب** من صفحة الملف الشخصي عبر endpoint خادمي يستعمل Supabase Admin، مع الحفاظ على سجل حدث الحذف في `audit_logs`.
-- **Audit logs** للأحداث الحساسة: إنشاء الغرف، تغييرات أدوار الأعضاء، تغييرات المؤقت، وحصول ملفات الامتحانات على روابط موقعة، إضافة إلى حذف الحساب.
-- **مولد MCQ كامل**: استرجاع RAG → توليد JSON والتحقق منه → تخزين الإجابات الصحيحة على الخادم → تصحيح النتيجة خادميًا → حفظ `quiz_attempts`.
-- **إغلاق ثغرة مهمة**: endpoint تسجيل النشاط لم يعد يقبل من العميل نتيجة Quiz مزورة؛ محاولات MCQ تُسجل فقط بعد إنهاء `quiz_session` على الخادم.
+## Architecture technique
 
+Le projet est une application web construite avec **Next.js App Router**, **React** et **TypeScript**. **Supabase** fournit l’authentification, la base PostgreSQL, le stockage privé et les fonctionnalités Realtime. **pgvector** est utilisé pour la recherche sémantique dans les contenus pédagogiques.
 
-## الإعداد
+Les salles audio et vidéo utilisent **LiveKit**. Certaines fonctions pédagogiques, comme l’assistant, le résumé et la génération de QCM, utilisent **Gemini** côté serveur. Dans cette architecture, l’IA est donc un service intégré à l’application et non le créateur du produit.
 
-1. أنشئ مشروع Supabase، فعّل `pgvector` (يحدث تلقائيًا عبر migration 0001)
-2. طبّق الترحيلات: `supabase db push` أو نفّذ ملفات `supabase/migrations/*.sql` يدويًا
-3. أنشئ مشروع LiveKit Cloud (أو استضافة ذاتية) واحصل على المفاتيح
-4. انسخ `.env.example` إلى `.env.local` واملأ القيم
-5. `npm install && npm run dev`
-6. لتلقيم المقرر: استخرج نص PDF (مثلاً بـ `pdftotext`) ثم `pnpm ingest --file ... --title ... --level 2BAC --subject الرياضيات`
+| Couche | Technologie |
+|---|---|
+| Interface et serveur | Next.js, React, TypeScript |
+| Authentification et données | Supabase Auth, PostgreSQL, Supabase Storage, Supabase Realtime |
+| Recherche sémantique | pgvector et pipeline RAG côté serveur |
+| Audio et vidéo | LiveKit Server SDK et LiveKit Client |
+| Validation des entrées | Zod dans les routes API |
+| Observabilité et e-mails | Sentry, PostHog et Resend |
 
-## تنبيه أمني من الفحص السابق
+## Installation locale
 
-ملف `.project-config.json` القديم كان يحتوي أسرارًا حقيقية (كلمة سر DB، JWT secret، مفاتيح API).
-إذا كنت شاركته سابقًا في أي مكان، غيّر هذه الأسرار من مصدرها الآن — هذا المشروع الجديد لا يحتوي عليها.
+Prérequis : Node.js, npm et un projet Supabase.
 
-## إصلاحات لاحقة (migrations 0006–0008)
+```bash
+cp .env.example .env.local
+npm install
+npm run dev
+```
 
-- أعيد ترقيم `0005_security_hardening.sql` إلى `0006_security_hardening.sql` و`0006_compliance_quizzes_whiteboard.sql` إلى `0007_compliance_quizzes_whiteboard.sql` لحل تعارض وجود ملفين بنفس الرقم `0005`.
-- `0008_fix_room_insert_policy.sql`: حذف سياسة RLS التي كانت تسمح بإدراج صف مباشر في `study_rooms` من العميل متجاوزة كل التحقق الموجود في `create_study_room()` (طول الاسم، إلزامية رمز مرور مشفّر للغرف الخاصة) ودون إضافة العضوية في `room_members`. الإنشاء الآن يمر حصراً عبر `create_study_room()`.
+L’application est ensuite disponible à l’adresse [http://localhost:3000](http://localhost:3000).
 
-## إضافة connectors (Sentry + Resend + PostHog)
+Pour activer l’authentification et les données réelles, renseignez les variables Supabase dans `.env.local`. Les fonctionnalités audio/vidéo nécessitent également une configuration LiveKit.
 
-- **Sentry**: مشروع `najah-ma` تخلق تحت تنظيم `iratta`. تتبع الأخطاء مفعّل على العميل والسيرفر وEdge (`instrumentation.ts`, `sentry.*.config.ts`) مع `global-error.tsx` كحدّ أخير للأخطاء غير الملتقطة. `tracesSampleRate` مضبوط على 0.1 (10%) عمداً — الغرف تستعمل جلسات LiveKit طويلة، وتتبع 100% سيكون مكلفاً وغير مفيد. Session Replay **معطّل** لأن التطبيق يحتوي بيانات تلاميذ حساسة (نتائج، أسئلة) وتفعيله يحتاج مراجعة خصوصية منفصلة.
-- **Resend**: مفتاح API بصلاحية `sending_access` تم إنشاؤه (`najah-ma-transactional`). `lib/email.ts` يرسل بريد تأكيد عند حذف الحساب (`account_deleted`) ودعوات الغرف الخاصة. **لا يوجد نطاق موثّق بعد** — الإرسال الحالي يمر عبر `onboarding@resend.dev` المشترك، الذي لا يقدر يرسل إلا لعنوان صاحب حساب Resend نفسه. قبل الإطلاق الحقيقي: وثّق نطاق (مثلاً `najah.ma`) في Resend واضبط `RESEND_FROM_EMAIL`.
-- **PostHog**: مشروع "Default project" الموجود مسبقاً فمنظمة "Iratta project" (EU region). `autocapture` **معطّل** عمداً (منصة تلاميذ — بغينا أحداث محددة، ماشي كل نقرة). الأحداث المتتبَّعة حالياً: `study_session_recorded`، `quiz_submitted`، `room_created`، `account_deleted`. الربط بين أحداث العميل والسيرفر يتم عبر `posthog.identify(user.id)` بلا إرسال إيميل أو اسم (تقليل بيانات الأشخاص لمنصة يستعملها قاصرون).
+## Variables d’environnement
 
-## Security hardening notes
+Copiez `.env.example` vers `.env.local`, puis renseignez les valeurs adaptées à votre environnement :
 
-- Apply `supabase/migrations/0005_security_hardening.sql` after the existing migrations.
-- Room timer writes must use `set_room_timer`; there is no broad client UPDATE policy on `study_rooms`.
-- Study durations are derived server-side by `record_study_session`; clients cannot choose the stored `duration_minutes`.
-- Realtime room channels are private and Presence is authorized only for authenticated room members. Keep Supabase Realtime **Allow public access** disabled in production.
-- LiveKit join tokens are short-lived and restrict published media sources; only hosts/moderators receive `roomAdmin`.
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=
+GEMINI_API_KEY=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+NEXT_PUBLIC_POSTHOG_KEY=
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+```
+
+Ne commitez jamais `.env.local` ni une clé secrète dans Git. La clé `NEXT_PUBLIC_SUPABASE_ANON_KEY` est une clé publique destinée au navigateur. Les clés `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` et `RESEND_API_KEY` doivent rester exclusivement côté serveur.
+
+## Base de données et migrations
+
+Les migrations Supabase se trouvent dans `supabase/migrations/`. Appliquez-les avec les outils officiels Supabase ou dans l’environnement de déploiement prévu. Examinez toujours une migration et sauvegardez la base avant de la déployer en production.
+
+Les définitions de tables et de types utilisées par Drizzle se trouvent dans `drizzle/schema.ts`. Toute modification de structure doit garder les définitions Drizzle et les migrations SQL cohérentes.
+
+## Sécurité
+
+Les opérations sensibles sont protégées par une authentification côté serveur et les données utilisateur sont isolées par des politiques **Row-Level Security**. Les routes API valident les entrées avec Zod, les résultats des QCM sont calculés côté serveur et les fichiers PDF sont contrôlés avant leur traitement.
+
+Le projet comprend également des en-têtes de sécurité, des cookies de session configurés pour le serveur, une limitation du débit sur les routes sensibles, des réponses API réduites et des liens de stockage temporaires pour les fichiers privés.
+
+Les paramètres de production doivent toutefois être configurés correctement dans Supabase, LiveKit et le fournisseur de déploiement. Les clés qui auraient déjà été exposées doivent être révoquées et remplacées.
+
+## Commandes utiles
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run db:generate
+npm run db:push
+npm run ingest
+```
+
+La commande `npm run ingest` sert à alimenter la base de connaissances après préparation des textes, selon le script `scripts/ingest-curriculum.ts`.
+
+## Organisation du projet
+
+```text
+app/                  Pages Next.js et routes API
+components/           Composants d’interface et de salles
+lib/                  Clients Supabase et services d’étude, RAG et observabilité
+drizzle/              Définitions des tables et des types
+supabase/migrations/  Migrations SQL et politiques RLS
+scripts/              Outils d’ingestion et de maintenance
+public/               Ressources statiques légères de l’interface
+```
+
+## État du projet
+
+Najah.ma est un projet en cours de développement. Avant une ouverture publique, il est recommandé de finaliser la configuration de l’authentification et des e-mails, d’ajouter une protection anti-robot et une limitation distribuée des tentatives de connexion, de mettre à jour les dépendances, de valider le build dans une CI et de revoir les exigences de confidentialité liées aux données des élèves.
