@@ -4,11 +4,13 @@ import { createRequestClient, createServiceClient } from "@/lib/supabase-server"
 import { extractYoutubeVideoId, fetchYoutubeTranscript } from "@/lib/youtube-transcript";
 import { ingestStudentDocumentChunks, generateStudySummary } from "@/lib/rag";
 import { rateLimit } from "@/lib/rate-limit";
-import { readJson } from "@/lib/request";
+import { readJson, requireSameOrigin } from "@/lib/request";
 
 const schema = z.object({ url: z.string().url() });
 
 export async function POST(req: NextRequest) {
+  const sameOrigin = requireSameOrigin(req);
+  if (sameOrigin) return sameOrigin;
   const client = await createRequestClient();
   const {
     data: { user },

@@ -4,12 +4,14 @@ import { createRequestClient, createServiceClient } from "@/lib/supabase-server"
 import { refreshLeaderboardForUser } from "@/lib/leaderboard";
 import { captureServerEvent } from "@/lib/posthog-server";
 import { rateLimit } from "@/lib/rate-limit";
-import { readJson } from "@/lib/request";
+import { readJson, requireSameOrigin } from "@/lib/request";
 
 const schema = z.object({ sessionId: z.string().uuid(), answers: z.array(z.number().int().min(0).max(3)).max(20) });
 const storedQuestion = z.object({ correctIndex: z.number().int().min(0).max(3), explanation: z.string(), question: z.string(), options: z.array(z.string()).length(4), source: z.string().optional() });
 
 export async function POST(req: NextRequest) {
+  const sameOrigin = requireSameOrigin(req);
+  if (sameOrigin) return sameOrigin;
   const client = await createRequestClient();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: "غير مصرح." }, { status: 401 });

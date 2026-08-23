@@ -3,11 +3,13 @@ import { AccessToken, TrackSource } from "livekit-server-sdk";
 import { z } from "zod";
 import { createRequestClient } from "@/lib/supabase-server";
 import { rateLimit } from "@/lib/rate-limit";
-import { readJson } from "@/lib/request";
+import { readJson, requireSameOrigin } from "@/lib/request";
 
 const requestSchema = z.object({ roomId: z.number().int().positive() });
 
 export async function POST(req: NextRequest) {
+  const sameOrigin = requireSameOrigin(req);
+  if (sameOrigin) return sameOrigin;
   const supabase = await createRequestClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {

@@ -1,12 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
 import { sendAccountDeletionEmail } from "@/lib/email";
 import { captureServerEvent } from "@/lib/posthog-server";
+import { rateLimit } from "@/lib/rate-limit";
+import { requireSameOrigin } from "@/lib/request";
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const sameOrigin = requireSameOrigin(request);
+  if (sameOrigin) return sameOrigin;
+
   const requestClient = await createRequestClient();
   const { data: { user } } = await requestClient.auth.getUser();
   if (!user) return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+
+  const limited = rateLimit(request, { name: "account-delete", limit: 3, windowMs: 60 * 60_000, userId: user.id });
+  if (limited) return limited;
 
   const admin = createServiceClient();
   // Keep the audit event even after the auth user is deleted: audit_logs.actor_user_id

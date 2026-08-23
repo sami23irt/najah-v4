@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createRequestClient } from "@/lib/supabase-server";
 import { retrieveCurriculumContext } from "@/lib/rag";
 import { rateLimit } from "@/lib/rate-limit";
-import { readJson } from "@/lib/request";
+import { readJson, requireSameOrigin } from "@/lib/request";
 
 const levelSchema = z.enum(["3AC", "TRC", "1BAC", "2BAC"]);
 
@@ -21,6 +21,8 @@ Si les extraits ne suffisent pas pour répondre avec certitude, dis-le clairemen
 Cite le document source par son titre quand tu t'appuies dessus.`;
 
 export async function POST(req: NextRequest) {
+  const sameOrigin = requireSameOrigin(req);
+  if (sameOrigin) return sameOrigin;
   // 1. Auth check — RLS-backed client, so this also confirms the session is real.
   const supabase = await createRequestClient();
   const { data: { user } } = await supabase.auth.getUser();

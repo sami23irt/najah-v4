@@ -4,7 +4,7 @@ import { createRequestClient } from "@/lib/supabase-server";
 import { refreshLeaderboardForUser } from "@/lib/leaderboard";
 import { captureServerEvent } from "@/lib/posthog-server";
 import { rateLimit } from "@/lib/rate-limit";
-import { readJson } from "@/lib/request";
+import { readJson, requireSameOrigin } from "@/lib/request";
 
 const sessionSchema = z.object({
   kind: z.literal("session"),
@@ -25,6 +25,8 @@ const sessionSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const sameOrigin = requireSameOrigin(req);
+  if (sameOrigin) return sameOrigin;
   const supabase = await createRequestClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "غير مصرح." }, { status: 401 });

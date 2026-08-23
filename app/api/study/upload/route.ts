@@ -3,10 +3,13 @@ import { createRequestClient, createServiceClient } from "@/lib/supabase-server"
 import { extractPdfText } from "@/lib/pdf-extract";
 import { ingestStudentDocumentChunks, generateStudySummary } from "@/lib/rag";
 import { rateLimit } from "@/lib/rate-limit";
+import { requireSameOrigin } from "@/lib/request";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
+  const sameOrigin = requireSameOrigin(req);
+  if (sameOrigin) return sameOrigin;
   const client = await createRequestClient();
   const {
     data: { user },

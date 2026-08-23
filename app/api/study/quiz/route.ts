@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
 import { rateLimit } from "@/lib/rate-limit";
-import { readJson } from "@/lib/request";
+import { readJson, requireSameOrigin } from "@/lib/request";
 
 const schema = z.object({
   documentId: z.string().uuid(),
@@ -27,6 +27,8 @@ function chooseRepresentativeChunks(rows: DocumentChunkRow[], maximum: number): 
 }
 
 export async function POST(req: NextRequest) {
+  const sameOrigin = requireSameOrigin(req);
+  if (sameOrigin) return sameOrigin;
   const client = await createRequestClient();
   const {
     data: { user },
