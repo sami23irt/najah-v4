@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
 import { retrieveCurriculumContext } from "@/lib/rag";
+import { rateLimit } from "@/lib/rate-limit";
+import { readJson } from "@/lib/request";
 
 const schema = z.object({
   level: z.enum(["3AC", "TRC", "1BAC", "2BAC"]),
@@ -21,8 +23,10 @@ export async function POST(req: NextRequest) {
   const client = await createRequestClient();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
+  const limited = rateLimit(req, { name: "quiz-generate", limit: 10, windowMs: 10 * 60_000, userId: user.id });
+  if (limited) return limited;
 
-  const parsed = schema.safeParse(await req.json());
+  const parsed = schema.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   const { level, subject, count } = parsed.data;
 
