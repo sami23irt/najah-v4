@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpenCheck, Check, GraduationCap, MapPin, Sparkles } from "lucide-react";
 import { NajahShell } from "@/components/NajahShell";
@@ -26,10 +26,6 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated) startLogin();
-  }, [loading, isAuthenticated]);
-
   const save = async () => {
     if (!user) return;
     setSaving(true); setError("");
@@ -39,7 +35,9 @@ export default function OnboardingPage() {
     router.push("/study");
   };
 
-  if (loading || !isAuthenticated) return <NajahShell><div className="najah-card mx-auto max-w-xl p-12 text-center"><Sparkles className="mx-auto size-10 animate-pulse text-emerald-700" /><p className="mt-4 font-bold text-slate-600">Préparation de votre espace…</p></div></NajahShell>;
+  if (loading) return <NajahShell><div className="najah-card mx-auto max-w-xl p-12 text-center"><Sparkles className="mx-auto size-10 animate-pulse text-emerald-700" /><p className="mt-4 font-bold text-slate-600">Préparation de votre espace…</p></div></NajahShell>;
+
+  if (!isAuthenticated) return <NajahShell><div className="najah-card mx-auto max-w-xl p-12 text-center"><Sparkles className="mx-auto size-10 text-emerald-700" /><p className="mt-4 font-bold text-slate-600">Connectez-vous pour préparer votre espace.</p><button onClick={startLogin} className="najah-button mt-6">Se connecter avec Google</button></div></NajahShell>;
 
   return <NajahShell>
     <div className="mx-auto max-w-5xl">

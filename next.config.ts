@@ -48,5 +48,5 @@ export default withSentryConfig(nextConfig, {
   silent: true,
   widenClientFileUpload: true,
   // Keep Sentry's default cron/tunnel routes off; the app doesn't use them.
-  disableLogger: true,
+  webpack: { treeshake: { removeDebugLogging: true } },
 });

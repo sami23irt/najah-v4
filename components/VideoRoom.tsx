@@ -71,9 +71,9 @@ export function VideoRoom({ roomId, focusPhase }: { roomId: number; focusPhase: 
 }
 
 /**
- * Maps the doc's "سلوك الميكروفونات أثناء الاستراحة" requirement: mic auto-mute
- * during focus phases, auto-unmute during breaks. The pomodoro phase is supplied
- * by the room page's Supabase Realtime timer state.
+ * Mutes the microphone during focus phases. The microphone is never enabled
+ * automatically when a break starts; the user must explicitly enable it again.
+ * The pomodoro phase is supplied by the room page's Supabase Realtime timer state.
  */
 export function FocusModeControls({ phase }: { phase: "focus" | "break" | "paused" }) {
   const { localParticipant } = useLocalParticipant();
@@ -81,8 +81,6 @@ export function FocusModeControls({ phase }: { phase: "focus" | "break" | "pause
   useEffect(() => {
     if (phase === "focus") {
       void localParticipant.setMicrophoneEnabled(false);
-    } else if (phase === "break") {
-      void localParticipant.setMicrophoneEnabled(true);
     }
   }, [phase, localParticipant]);
 

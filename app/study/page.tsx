@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { BookOpen, Bot, CheckCircle2, FileText, FileUp, Link2, Loader2, LogIn, MessageCircle, Send, ShieldAlert, Sparkles, WandSparkles, XCircle } from "lucide-react";
 import { NajahShell } from "@/components/NajahShell";
 import { useAuth } from "@/lib/useAuth";
@@ -267,29 +267,41 @@ function QuizModal({ documentId, close }: { documentId: string; close: () => voi
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [answers, setAnswers] = useState<number[]>([]);
   const [result, setResult] = useState<{ correctAnswers: number; totalQuestions: number; review: QuizReviewItem[] } | null>(null);
-  const [started, setStarted] = useState(false);
+  const generationStarted = useRef(false);
 
-  if (!started) {
-    setStarted(true);
+  useEffect(() => {
+    if (generationStarted.current) return;
+    generationStarted.current = true;
+    const controller = new AbortController();
+    let active = true;
+
     (async () => {
       try {
         const res = await fetch("/api/study/quiz", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ documentId, count: 6 }),
+          signal: controller.signal,
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "تعذر إنشاء الاختبار.");
+        if (!active) return;
         setSessionId(data.sessionId);
         setQuestions(data.questions);
         setAnswers(Array(data.questions.length).fill(-1));
         setPhase("answering");
       } catch (e) {
+        if (!active || (e instanceof DOMException && e.name === "AbortError")) return;
         setError(e instanceof Error ? e.message : "تعذر إنشاء الاختبار.");
         setPhase("error");
       }
     })();
-  }
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [documentId]);
 
   const submit = async () => {
     if (!sessionId) return;

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { AccessToken, TrackSource } from "livekit-server-sdk";
 import { z } from "zod";
 import { createRequestClient } from "@/lib/supabase-server";
+import { rateLimit } from "@/lib/rate-limit";
+import { readJson } from "@/lib/request";
 
 const requestSchema = z.object({ roomId: z.number().int().positive() });
 
@@ -12,7 +14,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
   }
 
-  const parsed = requestSchema.safeParse(await req.json());
+  const limited = rateLimit(req, { name: "rooms-token", limit: 20, windowMs: 10 * 60_000, userId: user.id });
+  if (limited) return limited;
+
+  const parsed = requestSchema.safeParse(await readJson(req));
   if (!parsed.success) {
     return NextResponse.json({ error: "طلب غير صالح." }, { status: 400 });
   }
@@ -31,7 +36,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "يجب الانضمام إلى الغرفة أولاً." }, { status: 403 });
   }
 
-  const token = new AccessToken(process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!, {
+  const apiKey = process.env.LIVEKIT_API_KEY;
+  const apiSecret = process.env.LIVEKIT_API_SECRET;
+  const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+  if (!apiKey || !apiSecret || !livekitUrl) {
+    return NextResponse.json({ error: "خدمة الغرف غير مهيأة حالياً." }, { status: 503 });
+  }
+
+  const token = new AccessToken(apiKey, apiSecret, {
     identity: user.id,
     name: user.user_metadata?.name ?? "تلميذ",
     // Short-lived join tokens reduce the window for stale credentials.
@@ -58,7 +70,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     token: await token.toJwt(),
-    livekitUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
+    livekitUrl,
     roomName: livekitRoomName,
   });
 }

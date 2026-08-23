@@ -230,7 +230,14 @@ function splitIntoSegments(raw: string, segmentSize: number): string[] {
       continue;
     }
     if (current) segments.push(current);
-    current = paragraph.length <= segmentSize ? paragraph : paragraph.slice(0, segmentSize);
+    if (paragraph.length <= segmentSize) {
+      current = paragraph;
+    } else {
+      for (let start = 0; start < paragraph.length; start += segmentSize) {
+        segments.push(paragraph.slice(start, start + segmentSize));
+      }
+      current = "";
+    }
   }
   if (current) segments.push(current);
   return segments;

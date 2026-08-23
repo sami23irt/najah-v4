@@ -40,9 +40,10 @@ create policy "own document chunks read" on public.student_document_chunks for s
   exists (select 1 from public.student_documents d where d.id = document_id and d.user_id = auth.uid())
 );
 
--- Vector similarity search scoped to one document. Ownership of that document
--- is verified in application code (service client + .eq("user_id", ...))
--- before this is ever called, same pattern used by app/api/quizzes/submit.
+-- Vector similarity search is server-only. The application route verifies that
+-- the requested document belongs to the signed-in user before calling this RPC.
+-- Keeping EXECUTE away from authenticated clients prevents a caller from
+-- bypassing that application-level ownership check by invoking the RPC directly.
 create or replace function public.match_student_document_chunks(
   query_embedding vector(768),
   match_document_id uuid,
@@ -56,16 +57,17 @@ returns table (
 )
 language sql
 stable
+security definer
 set search_path = public, pg_temp
 as $$
   select c.id, c.document_id, c.content, 1 - (c.embedding <=> query_embedding) as similarity
   from public.student_document_chunks c
   where c.document_id = match_document_id
   order by c.embedding <=> query_embedding
-  limit match_count;
+  limit least(greatest(coalesce(match_count, 6), 1), 20);
 $$;
 revoke execute on function public.match_student_document_chunks(vector, uuid, int) from public;
-grant execute on function public.match_student_document_chunks(vector, uuid, int) to authenticated, service_role;
+grant execute on function public.match_student_document_chunks(vector, uuid, int) to service_role;
 
 -- Private bucket for uploaded PDFs; only the server (service role) reads/writes,
 -- same pattern as the 'exams' bucket in 0005_exam_storage.sql.

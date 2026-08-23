@@ -18,6 +18,7 @@ export default function AuthPage() {
   const [verifiedMessage, setVerifiedMessage] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [oauthError] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("error") === "oauth_failed");
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -57,6 +58,7 @@ export default function AuthPage() {
         <div className="my-5 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />ou<span className="h-px flex-1 bg-slate-200" /></div>
         <button onClick={() => startLogin()} className="w-full rounded-2xl border border-slate-200 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Continuer avec Google</button>
         {(message || verifiedMessage) && <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800"><CheckCircle2 className="mr-2 inline size-5" />{message || "Vérifiez votre boîte de réception avant de continuer."}{verifiedMessage && <button onClick={resend} className="ml-2 underline">Renvoyer</button>}</div>}
+        {oauthError && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700">تعذر إكمال تسجيل الدخول عبر Google. حاول مرة أخرى.</p>}
         {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p>}
         <p className="mt-6 text-center text-xs text-slate-500">En continuant, vous acceptez les conditions de Najah.ma.</p>
         <Link href="/" className="mt-5 block text-center text-sm font-bold text-emerald-800">Retour à l’accueil</Link>

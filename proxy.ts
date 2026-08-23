@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const forwardedProto = request.headers.get("x-forwarded-proto");
   if (process.env.NODE_ENV === "production" && forwardedProto === "http") {
     const secureUrl = request.nextUrl.clone();

@@ -16,6 +16,16 @@ const questionSchema = z.object({
   explanation: z.string().min(1).max(1200),
 });
 
+type DocumentChunkRow = { content: string; chunk_index: number };
+
+function chooseRepresentativeChunks(rows: DocumentChunkRow[], maximum: number): DocumentChunkRow[] {
+  if (rows.length <= maximum) return rows;
+  return Array.from({ length: maximum }, (_, index) => {
+    const position = Math.round((index * (rows.length - 1)) / (maximum - 1));
+    return rows[position];
+  });
+}
+
 export async function POST(req: NextRequest) {
   const client = await createRequestClient();
   const {
@@ -40,15 +50,16 @@ export async function POST(req: NextRequest) {
 
   const { data: chunkRows, error: chunkError } = await admin
     .from("student_document_chunks")
-    .select("content")
+    .select("content,chunk_index")
     .eq("document_id", documentId)
     .order("chunk_index")
-    .limit(14);
+    .limit(200);
   if (chunkError || !chunkRows || chunkRows.length === 0) {
     return NextResponse.json({ error: "لا يوجد محتوى كافٍ لإنشاء اختبار." }, { status: 422 });
   }
 
-  const context = chunkRows.map((c, i) => `[${i + 1}] ${c.content}`).join("\n\n");
+  const selectedChunks = chooseRepresentativeChunks(chunkRows as DocumentChunkRow[], 14);
+  const context = selectedChunks.map((c, i) => `[${i + 1}] ${c.content}`).join("\n\n");
   const prompt = `Crée ${count} questions à choix multiple UNIQUEMENT à partir du texte source ci-dessous, sans y ajouter d'information absente.\n\nTexte source :\n${context}\n\nRègles strictes : chaque question a exactement 4 options différentes, correctIndex entre 0 et 3, une explication brève. Réponds en JSON strict au format {"questions":[{"question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"..."}]}.`;
 
   const response = await fetch(
