@@ -3,6 +3,8 @@ import { z } from "zod";
 import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
 import { extractYoutubeVideoId, fetchYoutubeTranscript } from "@/lib/youtube-transcript";
 import { ingestStudentDocumentChunks, generateStudySummary } from "@/lib/rag";
+import { rateLimit } from "@/lib/rate-limit";
+import { readJson } from "@/lib/request";
 
 const schema = z.object({ url: z.string().url() });
 
@@ -12,8 +14,10 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
+  const limited = rateLimit(req, { name: "study-youtube", limit: 10, windowMs: 60 * 60_000, userId: user.id });
+  if (limited) return limited;
 
-  const parsed = schema.safeParse(await req.json());
+  const parsed = schema.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: "رابط غير صالح." }, { status: 400 });
 
   const videoId = extractYoutubeVideoId(parsed.data.url);

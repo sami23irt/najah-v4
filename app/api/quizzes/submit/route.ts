@@ -3,6 +3,8 @@ import { z } from "zod";
 import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
 import { refreshLeaderboardForUser } from "@/lib/leaderboard";
 import { captureServerEvent } from "@/lib/posthog-server";
+import { rateLimit } from "@/lib/rate-limit";
+import { readJson } from "@/lib/request";
 
 const schema = z.object({ sessionId: z.string().uuid(), answers: z.array(z.number().int().min(0).max(3)).max(20) });
 const storedQuestion = z.object({ correctIndex: z.number().int().min(0).max(3), explanation: z.string(), question: z.string(), options: z.array(z.string()).length(4), source: z.string().optional() });
@@ -11,11 +13,18 @@ export async function POST(req: NextRequest) {
   const client = await createRequestClient();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
-  const parsed = schema.safeParse(await req.json());
+  const limited = rateLimit(req, { name: "quiz-submit", limit: 20, windowMs: 10 * 60_000, userId: user.id });
+  if (limited) return limited;
+  const parsed = schema.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const admin = createServiceClient();
-  const { data: session, error } = await admin.from("quiz_sessions").select("*").eq("id", parsed.data.sessionId).eq("user_id", user.id).single();
+  const { data: session, error } = await admin
+    .from("quiz_sessions")
+    .select("id,user_id,level,subject,document_id,questions,total_questions,correct_answers,expires_at,submitted_at")
+    .eq("id", parsed.data.sessionId)
+    .eq("user_id", user.id)
+    .single();
   if (error || !session) return NextResponse.json({ error: "جلسة الاختبار غير موجودة." }, { status: 404 });
   if (session.submitted_at) return NextResponse.json({ error: "تم إرسال هذا الاختبار مسبقاً." }, { status: 409 });
   if (new Date(session.expires_at).getTime() < Date.now()) return NextResponse.json({ error: "انتهت صلاحية الاختبار." }, { status: 410 });

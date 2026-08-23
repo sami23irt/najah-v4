@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
 import { extractPdfText } from "@/lib/pdf-extract";
 import { ingestStudentDocumentChunks, generateStudySummary } from "@/lib/rag";
+import { rateLimit } from "@/lib/rate-limit";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
@@ -11,6 +12,8 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: "يجب تسجيل الدخول لاستيراد ملف." }, { status: 401 });
+  const limited = rateLimit(req, { name: "study-upload", limit: 5, windowMs: 60 * 60_000, userId: user.id });
+  if (limited) return limited;
 
   let form: FormData;
   try {
@@ -22,6 +25,9 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) return NextResponse.json({ error: "لم يتم إرفاق ملف." }, { status: 400 });
   if (file.type !== "application/pdf") return NextResponse.json({ error: "الملفات المدعومة حالياً: PDF فقط." }, { status: 415 });
   if (file.size > MAX_BYTES) return NextResponse.json({ error: "حجم الملف يتجاوز 20 ميغابايت." }, { status: 413 });
+  const signature = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  const isPdf = String.fromCharCode(...signature) === "%PDF-";
+  if (!isPdf) return NextResponse.json({ error: "محتوى الملف لا يطابق صيغة PDF." }, { status: 415 });
 
   const admin = createServiceClient();
   const title = (file.name.replace(/\.pdf$/i, "").trim() || "Support importé").slice(0, 255);

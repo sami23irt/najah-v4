@@ -3,6 +3,8 @@ import { z } from "zod";
 import { createRequestClient } from "@/lib/supabase-server";
 import { refreshLeaderboardForUser } from "@/lib/leaderboard";
 import { captureServerEvent } from "@/lib/posthog-server";
+import { rateLimit } from "@/lib/rate-limit";
+import { readJson } from "@/lib/request";
 
 const sessionSchema = z.object({
   kind: z.literal("session"),
@@ -26,8 +28,10 @@ export async function POST(req: NextRequest) {
   const supabase = await createRequestClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
+  const limited = rateLimit(req, { name: "dashboard-record", limit: 30, windowMs: 10 * 60_000, userId: user.id });
+  if (limited) return limited;
 
-  const parsed = sessionSchema.safeParse(await req.json());
+  const parsed = sessionSchema.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { roomId, subject, startedAt, completedAt } = parsed.data;
@@ -42,7 +46,10 @@ export async function POST(req: NextRequest) {
     p_started_at: startedAt,
     p_completed_at: completedAt,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("Failed to record study session:", error);
+    return NextResponse.json({ error: "تعذر تسجيل جلسة الدراسة." }, { status: 400 });
+  }
 
   try {
     await refreshLeaderboardForUser(user.id);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase-server";
+import { rateLimit } from "@/lib/rate-limit";
 
 const requestSchema = z.object({
   examId: z.coerce.number().int().positive(),
@@ -8,6 +9,9 @@ const requestSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, { name: "archive-file", limit: 60, windowMs: 10 * 60_000 });
+  if (limited) return limited;
+
   const parsed = requestSchema.safeParse({
     examId: req.nextUrl.searchParams.get("examId"),
     kind: req.nextUrl.searchParams.get("kind"),

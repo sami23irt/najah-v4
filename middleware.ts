@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (process.env.NODE_ENV === "production" && forwardedProto === "http") {
+    const secureUrl = request.nextUrl.clone();
+    secureUrl.protocol = "https:";
+    return NextResponse.redirect(secureUrl, 308);
+  }
+
   let response = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -13,7 +20,14 @@ export async function middleware(request: NextRequest) {
       setAll: (cookiesToSet: { name: string; value: string; options: CookieOptions }[]) => {
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
         response = NextResponse.next({ request });
-        for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, options);
+        for (const { name, value, options } of cookiesToSet) {
+          response.cookies.set(name, value, {
+            ...options,
+            httpOnly: true,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+          });
+        }
       },
     },
   });
