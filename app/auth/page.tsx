@@ -23,21 +23,35 @@ export default function AuthPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true); setError(""); setMessage("");
-    const result = mode === "signup" ? await signUp(email, password) : await signIn(email, password);
+    try {
+      const result = mode === "signup" ? await signUp(email, password) : await signIn(email, password);
     setBusy(false);
     if (result.error) return setError(result.error.message);
     if (mode === "signup") {
-      setVerifiedMessage(true);
-      setMessage("Un lien de vérification vient d’être envoyé à votre adresse e-mail.");
+      if (result.data.session) {
+        router.push("/onboarding");
+      } else {
+        setVerifiedMessage(true);
+        setMessage("Un lien de vérification vient d’être envoyé. Ouvrez-le pour activer votre compte, puis revenez vous connecter.");
+      }
     } else {
       router.push("/onboarding");
+    }
+    } catch (caught) {
+      setBusy(false);
+      setError(caught instanceof Error ? caught.message : "Une erreur inattendue est survenue.");
     }
   };
 
   const startGoogleLogin = async () => {
     setBusy(true); setError("");
-    const result = await startLogin();
-    if (result.error) { setBusy(false); setError(result.error.message); }
+    try {
+      const result = await startLogin();
+      if (result.error) { setBusy(false); setError(result.error.message); }
+    } catch (caught) {
+      setBusy(false);
+      setError(caught instanceof Error ? caught.message : "Une erreur inattendue est survenue.");
+    }
   };
 
   const resend = async () => {
