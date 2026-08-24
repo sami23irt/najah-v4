@@ -34,6 +34,12 @@ export default function AuthPage() {
     }
   };
 
+  const startGoogleLogin = async () => {
+    setBusy(true); setError("");
+    const result = await startLogin();
+    if (result.error) { setBusy(false); setError(result.error.message); }
+  };
+
   const resend = async () => {
     setError("");
     const result = await resendVerification(email);
@@ -56,7 +62,7 @@ export default function AuthPage() {
           <button disabled={busy} className="najah-button w-full disabled:opacity-50">{busy ? "Veuillez patienter…" : mode === "signup" ? "Créer mon compte" : "Se connecter"}</button>
         </form>
         <div className="my-5 flex items-center gap-3 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />ou<span className="h-px flex-1 bg-slate-200" /></div>
-        <button onClick={() => startLogin()} className="w-full rounded-2xl border border-slate-200 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Continuer avec Google</button>
+        <button type="button" disabled={busy} onClick={startGoogleLogin} className="w-full rounded-2xl border border-slate-200 py-3 text-sm font-black text-slate-700 hover:bg-slate-50 disabled:opacity-50">{busy ? "Veuillez patienter…" : "Continuer avec Google"}</button>
         {(message || verifiedMessage) && <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800"><CheckCircle2 aria-hidden="true" className="mr-2 inline size-5" />{message || "Vérifiez votre boîte de réception avant de continuer."}{verifiedMessage && <button onClick={resend} className="ml-2 underline">Renvoyer</button>}</div>}
         {oauthError && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700">La connexion avec Google a échoué. Veuillez réessayer.</p>}
         {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p>}
