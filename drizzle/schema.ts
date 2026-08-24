@@ -183,7 +183,8 @@ export const quizSessions = pgTable(
     level: schoolLevelEnum("level"),
     subject: varchar("subject", { length: 120 }).notNull(),
     documentId: uuid("document_id").references(() => studentDocuments.id, { onDelete: "cascade" }),
-    questions: jsonb("questions").notNull(),
+    publicQuestions: jsonb("public_questions").notNull(),
+    answerKey: jsonb("answer_key").notNull(),
     totalQuestions: integer("total_questions").notNull(),
     correctAnswers: integer("correct_answers"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -268,6 +269,12 @@ export const studentDocuments = pgTable(
   },
   table => ({ userIdx: index("student_documents_user_idx").on(table.userId, table.createdAt) })
 );
+
+export const apiRateLimitBuckets = pgTable("api_rate_limit_buckets", {
+  bucketKey: text("bucket_key").primaryKey(),
+  requestCount: integer("request_count").notNull().default(0),
+  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+});
 
 export const studentDocumentChunks = pgTable(
   "student_document_chunks",

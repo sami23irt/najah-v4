@@ -39,7 +39,7 @@ export default function RoomDetailPage({ id }: { id: string }) {
       supabase.from("study_rooms").select("timer_phase,timer_ends_at").eq("id", roomId).single(),
       supabase
         .from("room_messages")
-        .select("id,body,created_at,user_id")
+        .select("id,body,created_at")
         .eq("room_id", roomId)
         .order("created_at", { ascending: false })
         .limit(60),
@@ -97,7 +97,7 @@ export default function RoomDetailPage({ id }: { id: string }) {
   const sendMessage = async (e: FormEvent) => {
     e.preventDefault();
     if (!body.trim() || !user) return;
-    const { data, error } = await supabase.from("room_messages").insert({ room_id: roomId, user_id: user.id, body: body.trim() }).select("id,body,created_at,user_id").single();
+    const { data, error } = await supabase.from("room_messages").insert({ room_id: roomId, user_id: user.id, body: body.trim() }).select("id,body,created_at").single();
     if (!error && data) {
       setBody("");
     }

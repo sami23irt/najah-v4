@@ -3,6 +3,7 @@ import { createRequestClient, createServiceClient } from "@/lib/supabase-server"
 import { sendAccountDeletionEmail } from "@/lib/email";
 import { captureServerEvent } from "@/lib/posthog-server";
 import { rateLimit } from "@/lib/rate-limit";
+import { persistentRateLimit } from "@/lib/server-rate-limit";
 import { requireSameOrigin } from "@/lib/request";
 
 export async function POST(request: NextRequest) {
@@ -15,6 +16,8 @@ export async function POST(request: NextRequest) {
 
   const limited = rateLimit(request, { name: "account-delete", limit: 3, windowMs: 60 * 60_000, userId: user.id });
   if (limited) return limited;
+  const persistentLimited = await persistentRateLimit({ scope: "account-delete", identifier: user.id, limit: 3, windowMs: 60 * 60_000 });
+  if (persistentLimited) return persistentLimited;
 
   const admin = createServiceClient();
   // Keep the audit event even after the auth user is deleted: audit_logs.actor_user_id

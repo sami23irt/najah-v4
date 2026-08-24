@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createServiceClient } from "./supabase-server";
+import { fetchWithTimeout, readJsonWithLimit } from "./safe-fetch";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
 const EMBEDDING_MODEL = "gemini-embedding-001"; // 768 dims; text-embedding-004 was shut down Jan 14, 2026
@@ -39,11 +40,11 @@ export function chunkText(raw: string, maxChars = 1200, overlap = 150): string[]
 }
 
 export async function embedText(text: string, taskType: "RETRIEVAL_QUERY" | "RETRIEVAL_DOCUMENT" = "RETRIEVAL_QUERY"): Promise<number[]> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${GEMINI_API_KEY}`,
+  const response = await fetchWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent`,
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
       body: JSON.stringify({
         model: `models/${EMBEDDING_MODEL}`,
         content: { parts: [{ text }] },
@@ -55,9 +56,9 @@ export async function embedText(text: string, taskType: "RETRIEVAL_QUERY" | "RET
     }
   );
   if (!response.ok) {
-    throw new Error(`Gemini embedding failed: ${response.status} ${await response.text()}`);
+    throw new Error(`Gemini embedding failed: ${response.status}`);
   }
-  const data = (await response.json()) as { embedding: { values: number[] } };
+  const data = await readJsonWithLimit<{ embedding: { values: number[] } }>(response, 256 * 1024);
   return data.embedding.values;
 }
 
@@ -70,6 +71,7 @@ export type RetrievedChunk = {
 };
 
 const MIN_SIMILARITY = 0.72; // below this, we treat the KB as "no relevant context found"
+const MAX_STUDENT_DOCUMENT_CHARS = 1_000_000;
 
 /**
  * The actual retrieval step of RAG: embed the question, then find the
@@ -157,6 +159,7 @@ export async function ingestCurriculumDocument(params: {
 // student sees a "processing" state immediately).
 
 export async function ingestStudentDocumentChunks(documentId: string, rawText: string): Promise<number> {
+  if (rawText.length > MAX_STUDENT_DOCUMENT_CHARS) throw new Error("DOCUMENT_TEXT_TOO_LARGE");
   const supabase = createServiceClient();
   const chunks = chunkText(rawText);
   for (let i = 0; i < chunks.length; i++) {
@@ -244,11 +247,11 @@ function splitIntoSegments(raw: string, segmentSize: number): string[] {
 }
 
 async function callGeminiJson(systemText: string, userText: string, maxOutputTokens: number): Promise<unknown> {
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+  const response = await fetchWithTimeout(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemText }] },
         contents: [{ role: "user", parts: [{ text: userText }] }],
@@ -256,8 +259,8 @@ async function callGeminiJson(systemText: string, userText: string, maxOutputTok
       }),
     }
   );
-  if (!response.ok) throw new Error(`Gemini summary failed: ${response.status} ${await response.text()}`);
-  const result = await response.json();
+  if (!response.ok) throw new Error(`Gemini summary failed: ${response.status}`);
+  const result = await readJsonWithLimit<Record<string, any>>(response, 2 * 1024 * 1024);
   const raw: string = result.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
   try {
     return JSON.parse(raw);

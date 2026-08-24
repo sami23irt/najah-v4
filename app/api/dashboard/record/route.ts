@@ -4,6 +4,7 @@ import { createRequestClient } from "@/lib/supabase-server";
 import { refreshLeaderboardForUser } from "@/lib/leaderboard";
 import { captureServerEvent } from "@/lib/posthog-server";
 import { rateLimit } from "@/lib/rate-limit";
+import { persistentRateLimit } from "@/lib/server-rate-limit";
 import { readJson, requireSameOrigin } from "@/lib/request";
 
 const sessionSchema = z.object({
@@ -32,6 +33,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "غير مصرح." }, { status: 401 });
   const limited = rateLimit(req, { name: "dashboard-record", limit: 30, windowMs: 10 * 60_000, userId: user.id });
   if (limited) return limited;
+  const persistentLimited = await persistentRateLimit({ scope: "dashboard-record", identifier: user.id, limit: 30, windowMs: 10 * 60_000 });
+  if (persistentLimited) return persistentLimited;
 
   const parsed = sessionSchema.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

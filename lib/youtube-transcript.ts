@@ -1,3 +1,5 @@
+import { fetchWithTimeout, readTextWithLimit } from "@/lib/safe-fetch";
+
 // Best-effort YouTube transcript fetcher. There is no official public API for
 // this — we read the caption track list YouTube embeds in the watch page and
 // fetch the timedtext track directly, which is the same mechanism most
@@ -7,6 +9,15 @@
 const VIDEO_ID_RE = /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/;
 
 export function extractYoutubeVideoId(url: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:" || !/(^|\.)youtube\.com$|(^|\.)youtu\.be$/.test(parsed.hostname)) {
+    return null;
+  }
   const match = url.match(VIDEO_ID_RE);
   return match ? match[1] : null;
 }
@@ -23,11 +34,11 @@ function decodeHtmlEntities(input: string): string {
 }
 
 export async function fetchYoutubeTranscript(videoId: string): Promise<{ title: string; text: string }> {
-  const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+  const pageRes = await fetchWithTimeout(`https://www.youtube.com/watch?v=${videoId}`, {
     headers: { "accept-language": "fr,ar;q=0.9,en;q=0.8" },
-  });
+  }, 15_000);
   if (!pageRes.ok) throw new Error("YOUTUBE_PAGE_FETCH_FAILED");
-  const html = await pageRes.text();
+  const html = await readTextWithLimit(pageRes, 5 * 1024 * 1024);
 
   const titleMatch = html.match(/<meta name="title" content="([^"]+)"/);
   const title = titleMatch ? decodeHtmlEntities(titleMatch[1]) : "Cours vidéo YouTube";
@@ -50,9 +61,19 @@ export async function fetchYoutubeTranscript(videoId: string): Promise<{ title: 
     tracks.find(t => t.kind !== "asr") ??
     tracks[0];
 
-  const captionRes = await fetch(track.baseUrl.replace(/\\u0026/g, "&"));
+  const captionUrl = track.baseUrl.replace(/\\u0026/g, "&");
+  let parsedCaptionUrl: URL;
+  try {
+    parsedCaptionUrl = new URL(captionUrl);
+  } catch {
+    throw new Error("YOUTUBE_CAPTIONS_FETCH_FAILED");
+  }
+  if (parsedCaptionUrl.protocol !== "https:" || !/(^|\\.)youtube\.com$|(^|\\.)googlevideo\.com$/.test(parsedCaptionUrl.hostname)) {
+    throw new Error("YOUTUBE_CAPTIONS_FETCH_FAILED");
+  }
+  const captionRes = await fetchWithTimeout(parsedCaptionUrl, {}, 15_000);
   if (!captionRes.ok) throw new Error("YOUTUBE_CAPTIONS_FETCH_FAILED");
-  const xml = await captionRes.text();
+  const xml = await readTextWithLimit(captionRes, 10 * 1024 * 1024);
 
   const text = Array.from(xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g))
     .map(m => decodeHtmlEntities(m[1].replace(/<[^>]+>/g, " ")))

@@ -3,7 +3,10 @@ import { createRequestClient, createServiceClient } from "@/lib/supabase-server"
 import { extractPdfText } from "@/lib/pdf-extract";
 import { ingestStudentDocumentChunks, generateStudySummary } from "@/lib/rag";
 import { rateLimit } from "@/lib/rate-limit";
+import { persistentRateLimit } from "@/lib/server-rate-limit";
 import { requireSameOrigin } from "@/lib/request";
+
+export const maxDuration = 60;
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
@@ -17,6 +20,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "يجب تسجيل الدخول لاستيراد ملف." }, { status: 401 });
   const limited = rateLimit(req, { name: "study-upload", limit: 5, windowMs: 60 * 60_000, userId: user.id });
   if (limited) return limited;
+  const persistentLimited = await persistentRateLimit({ scope: "study-upload", identifier: user.id, limit: 5, windowMs: 60 * 60_000 });
+  if (persistentLimited) return persistentLimited;
 
   let form: FormData;
   try {
@@ -71,7 +76,9 @@ export async function POST(req: NextRequest) {
     const friendly =
       message === "PDF_TEXT_TOO_SHORT"
         ? "تعذر استخراج نص كافٍ من هذا الملف. تأكد أنه ليس صورة ممسوحة ضوئياً بدون نص قابل للتحديد."
-        : "تعذر تحليل الملف. حاول مجدداً أو جرّب ملفاً آخر.";
+        : message === "DOCUMENT_TEXT_TOO_LARGE"
+          ? "الملف يحتوي على نص أكبر من الحد المسموح للتحليل."
+          : "تعذر تحليل الملف. حاول مجدداً أو جرّب ملفاً آخر.";
     await admin.from("student_documents").update({ status: "failed", error_message: message }).eq("id", doc.id);
     return NextResponse.json({ error: friendly }, { status: 422 });
   }

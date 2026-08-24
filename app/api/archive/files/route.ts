@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase-server";
-import { rateLimit } from "@/lib/rate-limit";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { persistentRateLimit } from "@/lib/server-rate-limit";
 
 const requestSchema = z.object({
   examId: z.coerce.number().int().positive(),
@@ -11,6 +12,8 @@ const requestSchema = z.object({
 export async function GET(req: NextRequest) {
   const limited = rateLimit(req, { name: "archive-file", limit: 60, windowMs: 10 * 60_000 });
   if (limited) return limited;
+  const persistentLimited = await persistentRateLimit({ scope: "archive-file", identifier: getClientIp(req), limit: 60, windowMs: 10 * 60_000 });
+  if (persistentLimited) return persistentLimited;
 
   const parsed = requestSchema.safeParse({
     examId: req.nextUrl.searchParams.get("examId"),

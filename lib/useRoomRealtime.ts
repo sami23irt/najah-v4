@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase-client";
 
 export type TimerState = { phase: "focus" | "break" | "paused"; endsAt: string | null };
-export type RoomMessage = { id: number; body: string; created_at: string; user_id: string; pseudonym: string | null; show_pseudonym: boolean };
+export type RoomMessage = { id: number; body: string; created_at: string; user_id?: string; pseudonym: string | null; show_pseudonym: boolean };
 export type PresenceEntry = { userId: string; name: string };
 
 /**

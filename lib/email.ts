@@ -35,24 +35,3 @@ export async function sendAccountDeletionEmail(to: string) {
     console.error("Failed to send account deletion email:", err);
   }
 }
-
-/**
- * Invites a student to a study room by email (used from the room UI when a
- * host shares a private room by address instead of just a link).
- */
-export async function sendRoomInviteEmail(to: string, roomName: string, joinUrl: string) {
-  if (!resend) {
-    console.warn("RESEND_API_KEY is not configured; skipping room invite email.");
-    return;
-  }
-  try {
-    await resend.emails.send({
-      from: FROM,
-      to,
-      subject: `دعوة للانضمام إلى غرفة "${roomName}" على Najah.ma`,
-      text: `تمت دعوتك للانضمام إلى غرفة مذاكرة "${roomName}".\nرابط الانضمام: ${joinUrl}`,
-    });
-  } catch (err) {
-    console.error("Failed to send room invite email:", err);
-  }
-}

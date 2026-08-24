@@ -3,7 +3,11 @@ import { z } from "zod";
 import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
 import { retrieveCurriculumContext } from "@/lib/rag";
 import { rateLimit } from "@/lib/rate-limit";
+import { persistentRateLimit } from "@/lib/server-rate-limit";
+import { fetchWithTimeout, readJsonWithLimit } from "@/lib/safe-fetch";
 import { readJson, requireSameOrigin } from "@/lib/request";
+
+export const maxDuration = 60;
 
 const schema = z.object({
   level: z.enum(["3AC", "TRC", "1BAC", "2BAC"]),
@@ -27,6 +31,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
   const limited = rateLimit(req, { name: "quiz-generate", limit: 10, windowMs: 10 * 60_000, userId: user.id });
   if (limited) return limited;
+  const persistentLimited = await persistentRateLimit({ scope: "quiz-generate", identifier: user.id, limit: 10, windowMs: 10 * 60_000 });
+  if (persistentLimited) return persistentLimited;
 
   const parsed = schema.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -40,9 +46,11 @@ export async function POST(req: NextRequest) {
   const context = chunks.map((c, i) => `[${i + 1}] ${c.documentTitle}\n${c.content}`).join("\n\n");
   const prompt = `أنشئ ${count} أسئلة MCQ للمستوى ${level} في مادة ${subject}.\n\nالمصادر المسموح بها فقط:\n${context}\n\nقواعد صارمة: كل سؤال له 4 خيارات مختلفة، correctIndex من 0 إلى 3، تفسير قصير، ولا تضف معلومة غير موجودة في المصادر. أعد JSON فقط بالشكل {"questions":[{"question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"...","source":"..."}]}.`;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: "خدمة الذكاء الاصطناعي غير مهيأة حالياً." }, { status: 503 });
+  const response = await fetchWithTimeout("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: "أنت مولد اختبارات تعليمي. التزم حصراً بالمصادر المعطاة وأعد JSON صالحاً." }] },
       contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -51,7 +59,7 @@ export async function POST(req: NextRequest) {
   });
   if (!response.ok) return NextResponse.json({ error: "تعذر إنشاء الاختبار حالياً." }, { status: 502 });
 
-  const result = await response.json();
+  const result = await readJsonWithLimit<Record<string, any>>(response, 2 * 1024 * 1024);
   const raw = result.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
   let json: unknown;
   try { json = JSON.parse(raw); } catch { return NextResponse.json({ error: "تعذر التحقق من صيغة الاختبار." }, { status: 502 }); }
@@ -64,7 +72,8 @@ export async function POST(req: NextRequest) {
     user_id: user.id,
     level,
     subject,
-    questions,
+    public_questions: questions.map(({ correctIndex: _correctIndex, ...question }) => question),
+    answer_key: questions,
     total_questions: questions.length,
   }).select("id,total_questions,expires_at").single();
   if (error || !session) return NextResponse.json({ error: "تعذر حفظ جلسة الاختبار." }, { status: 500 });

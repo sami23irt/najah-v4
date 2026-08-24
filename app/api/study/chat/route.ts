@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-server";
 import { createGeminiStreamResponse } from "@/lib/gemini-stream";
+import { requireAuthenticatedUser } from "@/lib/api-auth";
 import { retrieveDocumentContext } from "@/lib/rag";
 import { rateLimit } from "@/lib/rate-limit";
-import { readJson, requireSameOrigin } from "@/lib/request";
+import { persistentRateLimit } from "@/lib/server-rate-limit";
+import { readJson } from "@/lib/request";
+
+export const maxDuration = 60;
 
 const schema = z.object({
   documentId: z.string().uuid(),
@@ -16,15 +20,14 @@ const GUARDRAIL = `Tu es l'assistant d'étude de Najah.ma. Réponds UNIQUEMENT �
 N'invente jamais une information absente de ces extraits. Si les extraits ne suffisent pas pour répondre avec certitude, dis-le clairement au lieu de deviner.`;
 
 export async function POST(req: NextRequest) {
-  const sameOrigin = requireSameOrigin(req);
-  if (sameOrigin) return sameOrigin;
-
-  const client = await createRequestClient();
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) return NextResponse.json({ error: "يجب تسجيل الدخول لاستعمال المساعد الذكي." }, { status: 401 });
+  const auth = await requireAuthenticatedUser(req, "يجب تسجيل الدخول لاستعمال المساعد الذكي.");
+  if ("response" in auth) return auth.response;
+  const { user } = auth;
 
   const limited = rateLimit(req, { name: "study-chat", limit: 30, windowMs: 10 * 60_000, userId: user.id });
   if (limited) return limited;
+  const persistentLimited = await persistentRateLimit({ scope: "study-chat", identifier: user.id, limit: 30, windowMs: 10 * 60_000 });
+  if (persistentLimited) return persistentLimited;
 
   const parsed = schema.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

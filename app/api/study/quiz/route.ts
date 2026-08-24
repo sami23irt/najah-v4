@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createRequestClient, createServiceClient } from "@/lib/supabase-server";
 import { rateLimit } from "@/lib/rate-limit";
+import { persistentRateLimit } from "@/lib/server-rate-limit";
+import { fetchWithTimeout, readJsonWithLimit } from "@/lib/safe-fetch";
 import { readJson, requireSameOrigin } from "@/lib/request";
+
+export const maxDuration = 60;
 
 const schema = z.object({
   documentId: z.string().uuid(),
@@ -36,6 +40,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
   const limited = rateLimit(req, { name: "study-quiz", limit: 10, windowMs: 10 * 60_000, userId: user.id });
   if (limited) return limited;
+  const persistentLimited = await persistentRateLimit({ scope: "study-quiz", identifier: user.id, limit: 10, windowMs: 10 * 60_000 });
+  if (persistentLimited) return persistentLimited;
 
   const parsed = schema.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -64,11 +70,13 @@ export async function POST(req: NextRequest) {
   const context = selectedChunks.map((c, i) => `[${i + 1}] ${c.content}`).join("\n\n");
   const prompt = `Crée ${count} questions à choix multiple UNIQUEMENT à partir du texte source ci-dessous, sans y ajouter d'information absente.\n\nTexte source :\n${context}\n\nRègles strictes : chaque question a exactement 4 options différentes, correctIndex entre 0 et 3, une explication brève. Réponds en JSON strict au format {"questions":[{"question":"...","options":["...","...","...","..."],"correctIndex":0,"explanation":"..."}]}.`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: "خدمة الذكاء الاصطناعي غير مهيأة حالياً." }, { status: 503 });
+  const response = await fetchWithTimeout(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         systemInstruction: {
           parts: [{ text: "Tu génères des quiz éducatifs strictement à partir du texte source fourni et renvoies un JSON valide." }],
@@ -80,7 +88,7 @@ export async function POST(req: NextRequest) {
   );
   if (!response.ok) return NextResponse.json({ error: "تعذر إنشاء الاختبار حالياً." }, { status: 502 });
 
-  const result = await response.json();
+  const result = await readJsonWithLimit<Record<string, any>>(response, 2 * 1024 * 1024);
   const raw = result.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
   let json: unknown;
   try {
@@ -98,7 +106,8 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       subject: doc.title.slice(0, 120),
       document_id: documentId,
-      questions,
+      public_questions: questions.map(({ correctIndex: _correctIndex, ...question }) => question),
+      answer_key: questions,
       total_questions: questions.length,
     })
     .select("id,total_questions,expires_at")

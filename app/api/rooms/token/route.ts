@@ -3,6 +3,7 @@ import { AccessToken, TrackSource } from "livekit-server-sdk";
 import { z } from "zod";
 import { createRequestClient } from "@/lib/supabase-server";
 import { rateLimit } from "@/lib/rate-limit";
+import { persistentRateLimit } from "@/lib/server-rate-limit";
 import { readJson, requireSameOrigin } from "@/lib/request";
 
 const requestSchema = z.object({ roomId: z.number().int().positive() });
@@ -18,6 +19,8 @@ export async function POST(req: NextRequest) {
 
   const limited = rateLimit(req, { name: "rooms-token", limit: 20, windowMs: 10 * 60_000, userId: user.id });
   if (limited) return limited;
+  const persistentLimited = await persistentRateLimit({ scope: "rooms-token", identifier: user.id, limit: 20, windowMs: 10 * 60_000 });
+  if (persistentLimited) return persistentLimited;
 
   const parsed = requestSchema.safeParse(await readJson(req));
   if (!parsed.success) {

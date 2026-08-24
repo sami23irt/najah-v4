@@ -12,7 +12,7 @@ type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
 const MAX_BUCKETS = 10_000;
 
-function getClientIp(request: NextRequest): string {
+export function getClientIp(request: NextRequest): string {
   // On Vercel, x-forwarded-for is set by the trusted edge proxy. Use only the
   // first address and never accept an arbitrary client-provided chain in logs.
   return request.headers.get("x-forwarded-for")?.split(",", 1)[0]?.trim() || "unknown";

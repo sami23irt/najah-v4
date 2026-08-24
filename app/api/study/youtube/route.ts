@@ -4,7 +4,10 @@ import { createRequestClient, createServiceClient } from "@/lib/supabase-server"
 import { extractYoutubeVideoId, fetchYoutubeTranscript } from "@/lib/youtube-transcript";
 import { ingestStudentDocumentChunks, generateStudySummary } from "@/lib/rag";
 import { rateLimit } from "@/lib/rate-limit";
+import { persistentRateLimit } from "@/lib/server-rate-limit";
 import { readJson, requireSameOrigin } from "@/lib/request";
+
+export const maxDuration = 60;
 
 const schema = z.object({ url: z.string().url() });
 
@@ -18,6 +21,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "يجب تسجيل الدخول." }, { status: 401 });
   const limited = rateLimit(req, { name: "study-youtube", limit: 10, windowMs: 60 * 60_000, userId: user.id });
   if (limited) return limited;
+  const persistentLimited = await persistentRateLimit({ scope: "study-youtube", identifier: user.id, limit: 10, windowMs: 60 * 60_000 });
+  if (persistentLimited) return persistentLimited;
 
   const parsed = schema.safeParse(await readJson(req));
   if (!parsed.success) return NextResponse.json({ error: "رابط غير صالح." }, { status: 400 });

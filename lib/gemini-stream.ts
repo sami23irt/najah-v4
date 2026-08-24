@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/safe-fetch";
+
 type StreamMetadata = Record<string, unknown>;
 
 type GeminiStreamOptions = {
@@ -37,11 +39,11 @@ export async function createGeminiStreamResponse({
   if (!apiKey) return Response.json({ error: "خدمة الذكاء الاصطناعي غير مهيأة حالياً." }, { status: 503 });
 
   const abortController = new AbortController();
-  const upstream = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`,
+  const upstream = await fetchWithTimeout(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse",
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-goog-api-key": apiKey },
       signal: abortController.signal,
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemInstruction }] },
@@ -99,8 +101,9 @@ export async function createGeminiStreamResponse({
           controller.close();
         }
       } catch (error) {
+        console.error("Gemini stream failed", { error });
         if (!closed && !cancelled) {
-          controller.enqueue(sse({ type: "error", error: error instanceof Error ? error.message : "تعذر بث الإجابة." }));
+          controller.enqueue(sse({ type: "error", error: "تعذر بث الإجابة." }));
           controller.close();
         }
       } finally {
