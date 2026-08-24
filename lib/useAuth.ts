@@ -24,9 +24,9 @@ export function useAuth() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth` } });
+  const signUp = async (email: string, password: string) => supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth?verified=1` } });
   const signIn = async (email: string, password: string) => supabase.auth.signInWithPassword({ email, password });
-  const resendVerification = async (email: string) => supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: `${window.location.origin}/auth` } });
+  const resendVerification = async (email: string) => supabase.auth.resend({ type: "signup", email, options: { emailRedirectTo: `${window.location.origin}/auth?verified=1` } });
   const startLogin = async () => {
     const result = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback`, skipBrowserRedirect: true } });
     if (!result.error && result.data.url) window.location.assign(result.data.url);

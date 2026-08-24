@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, Eye, EyeOff, LockKeyhole, Mail, Sparkles } from "lucide-react";
@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/useAuth";
 
 export default function AuthPage() {
   const router = useRouter();
-  const { signUp, signIn, startLogin, resendVerification } = useAuth();
+  const { signUp, signIn, startLogin, resendVerification, isAuthenticated, loading: authLoading } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,6 +20,10 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [oauthError] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("error") === "oauth_failed");
 
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) router.replace("/dashboard");
+  }, [authLoading, isAuthenticated, router]);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setBusy(true); setError(""); setMessage("");
@@ -29,13 +33,21 @@ export default function AuthPage() {
     if (result.error) return setError(result.error.message);
     if (mode === "signup") {
       if (result.data.session) {
-        router.push("/onboarding");
+        router.replace("/dashboard");
+      } else if (result.data.user && (result.data.user.identities?.length ?? 0) === 0) {
+        const existingLogin = await signIn(email, password);
+        if (!existingLogin.error) {
+          router.replace("/dashboard");
+        } else {
+          setMode("login");
+          setMessage("Ce compte existe déjà. Cliquez sur « Se connecter » pour accéder à votre espace.");
+        }
       } else {
         setVerifiedMessage(true);
-        setMessage("Un lien de vérification vient d’être envoyé. Ouvrez-le pour activer votre compte, puis revenez vous connecter.");
+        setMessage("Votre compte est créé. Ouvrez le lien de vérification envoyé par e-mail, puis revenez vous connecter.");
       }
     } else {
-      router.push("/onboarding");
+      router.replace("/dashboard");
     }
     } catch (caught) {
       setBusy(false);
@@ -69,6 +81,7 @@ export default function AuthPage() {
       </section>
       <section className="najah-card p-6 sm:p-9">
         <div className="mb-7 flex gap-2 rounded-2xl bg-emerald-50 p-1"><button onClick={() => {setMode("signup"); setVerifiedMessage(false);}} className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-black ${mode === "signup" ? "bg-white text-emerald-900 shadow-sm" : "text-slate-500"}`}>Créer un compte</button><button onClick={() => {setMode("login"); setVerifiedMessage(false);}} className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-black ${mode === "login" ? "bg-white text-emerald-900 shadow-sm" : "text-slate-500"}`}>Se connecter</button></div>
+        {!authLoading && isAuthenticated ? <div className="mb-5 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-800">Vous êtes déjà connecté. Ouverture de votre dashboard…</div> : null}
         <p className="section-kicker">Bienvenue sur Najah.ma</p><h2 className="mt-2 text-3xl font-black text-emerald-950">{mode === "signup" ? "Commencez votre parcours." : "Ravi de vous revoir."}</h2><p className="mt-3 text-sm leading-6 text-slate-500">{mode === "signup" ? "Créez votre compte élève avec votre adresse e-mail." : "Accédez à vos cours, vos quiz et votre progression."}</p>
         <form onSubmit={submit} className="mt-7 space-y-4">
           <label className="block space-y-2 text-sm font-bold text-slate-700">Adresse e-mail<div className="relative"><Mail aria-hidden="true" className="auth-field-icon absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" /><input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="najah-input najah-input-leading-icon" placeholder="vous@exemple.com" /></div></label>
