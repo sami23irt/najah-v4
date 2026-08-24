@@ -38,11 +38,11 @@ async function getPublishedExam(id: string): Promise<{ exam: PublishedExam | nul
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  if (!/^\d+$/.test(id) || Number(id) < 1) return { title: "امتحان غير موجود" };
+  if (!/^\d+$/.test(id) || Number(id) < 1) return { title: "Examen introuvable" };
   const { exam } = await getPublishedExam(id);
   return {
-    title: exam?.title || "قارئ الامتحان",
-    description: exam ? `اقرأ ${exam.title} من أرشيف الامتحانات المغربية في Najah.ma.` : "اقرأ الامتحانات والوثائق المرفقة من أرشيف Najah.ma.",
+    title: exam?.title || "Lecteur d’examen",
+    description: exam ? `Consultez ${exam.title} dans les archives des examens marocains de Najah.ma.` : "Consultez les examens et les documents associés dans les archives de Najah.ma.",
     alternates: { canonical: `/archive/${id}` },
   };
 }

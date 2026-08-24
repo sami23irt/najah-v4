@@ -62,7 +62,7 @@ export default function ProfilePage() {
       preferred_locale: "fr",
     });
     setSaving(false);
-    if (saveError) setError("تعذر حفظ الملف الشخصي حالياً.");
+    if (saveError) setError("Impossible d’enregistrer le profil pour le moment.");
     else setSaved(true);
   };
 

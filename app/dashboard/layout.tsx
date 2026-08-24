@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "لوحة التحكم",
+  title: "Tableau de bord",
   robots: { index: false, follow: false },
 };
 

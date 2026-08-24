@@ -34,7 +34,7 @@ export function VideoRoom({ roomId, focusPhase }: { roomId: number; focusPhase: 
       body: JSON.stringify({ roomId }),
     })
       .then(async res => {
-        if (!res.ok) throw new Error((await res.json()).error ?? "تعذر الاتصال بالغرفة.");
+        if (!res.ok) throw new Error((await res.json()).error ?? "Impossible de se connecter à la salle.");
         return res.json() as Promise<TokenResponse>;
       })
       .then(data => !cancelled && setConnection(data))
@@ -48,7 +48,7 @@ export function VideoRoom({ roomId, focusPhase }: { roomId: number; focusPhase: 
     return <div className="rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-900">{error}</div>;
   }
   if (!connection) {
-    return <div className="grid h-[70vh] place-items-center text-sm text-slate-500">جارٍ الاتصال بالغرفة…</div>;
+    return <div className="grid h-[70vh] place-items-center text-sm text-slate-500">Connexion à la salle…</div>;
   }
 
   return (
@@ -196,8 +196,8 @@ function StudyWhiteboard() {
   return (
     <aside className="flex min-h-0 flex-col border-r border-slate-200 bg-white p-3">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-black text-emerald-950">السبورة التفاعلية</h2>
-        <button onClick={() => clearCanvas(true)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold">مسح</button>
+        <h2 className="font-black text-emerald-950">Tableau blanc interactif</h2>
+        <button onClick={() => clearCanvas(true)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-bold">Effacer</button>
       </div>
       <canvas
         ref={canvasRef}
@@ -207,7 +207,7 @@ function StudyWhiteboard() {
         onPointerUp={end}
         onPointerCancel={end}
       />
-      <p className="mt-2 text-xs text-slate-500">تتم مزامنة الرسم مباشرة مع أعضاء الغرفة.</p>
+      <p className="mt-2 text-xs text-slate-500">Le dessin est synchronisé en direct avec les membres de la salle.</p>
     </aside>
   );
 }

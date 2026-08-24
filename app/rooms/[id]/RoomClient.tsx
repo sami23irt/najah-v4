@@ -25,7 +25,7 @@ export default function RoomDetailPage({ id }: { id: string }) {
   const { connected, timer, liveMessages, presence, syncTimer } = useRoomRealtime(
     joined ? roomId : undefined,
     user?.id,
-    user?.user_metadata?.name ?? "تلميذ"
+    user?.user_metadata?.name ?? "Élève"
   );
 
   const join = async (code?: string) => {
@@ -70,7 +70,7 @@ export default function RoomDetailPage({ id }: { id: string }) {
     return Array.from(unique.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [history, liveMessages]);
 
-  const label = timer.phase === "focus" ? "وقت التركيز" : timer.phase === "break" ? "وقت الراحة" : "المؤقت متوقف";
+  const label = timer.phase === "focus" ? "Temps de concentration" : timer.phase === "break" ? "Temps de pause" : "Minuteur en pause";
 
   const toggleTimer = async () => {
     const phase = timer.phase === "focus" ? "break" : "focus";
@@ -108,8 +108,8 @@ export default function RoomDetailPage({ id }: { id: string }) {
       <NajahShell>
         <div className="rounded-3xl bg-white p-10 text-center">
           <UsersRound className="mx-auto size-10 text-emerald-700" />
-          <h1 className="mt-4 text-2xl font-black text-emerald-950">سجّل الدخول للانضمام إلى الغرفة</h1>
-          <button onClick={() => startLogin()} className="mt-5 rounded-xl bg-emerald-900 px-5 py-2.5 font-bold text-white">دخول التلميذ</button>
+          <h1 className="mt-4 text-2xl font-black text-emerald-950">Connectez-vous pour rejoindre la salle</h1>
+          <button onClick={() => startLogin()} className="mt-5 rounded-xl bg-emerald-900 px-5 py-2.5 font-bold text-white">Se connecter</button>
         </div>
       </NajahShell>
     );
@@ -125,33 +125,33 @@ export default function RoomDetailPage({ id }: { id: string }) {
             <div className="rounded-2xl bg-amber-50 p-4">
               <p className="text-sm font-bold text-amber-900">{joinError}</p>
               <form className="mt-3 flex gap-2" onSubmit={e => { e.preventDefault(); join(accessCode); }}>
-                <input id="room-access-code" value={accessCode} onChange={e => setAccessCode(e.target.value)} placeholder="رمز دعوة الغرفة الخاصة" aria-label="رمز دعوة الغرفة الخاصة" type="password" className="flex-1 rounded-lg border border-slate-200 px-3 py-2" />
-                <button type="submit" className="rounded-xl bg-emerald-900 px-4 py-2 font-bold text-white">انضمام</button>
+                <input id="room-access-code" value={accessCode} onChange={e => setAccessCode(e.target.value)} placeholder="Code d’invitation de la salle privée" aria-label="Code d’invitation de la salle privée" type="password" className="flex-1 rounded-lg border border-slate-200 px-3 py-2" />
+                <button type="submit" className="rounded-xl bg-emerald-900 px-4 py-2 font-bold text-white">Rejoindre</button>
               </form>
             </div>
           ) : (
-            <div className="grid h-[70vh] place-items-center text-sm text-slate-500">جارٍ الانضمام…</div>
+            <div className="grid h-[70vh] place-items-center text-sm text-slate-500">Connexion à la salle…</div>
           )}
 
           <article className="rounded-3xl bg-emerald-950 p-6 text-white">
-            <div className="flex items-center gap-2 text-amber-200"><TimerReset className="size-5" /><span className="text-sm font-bold">{connected ? "متصل بالمزامنة" : "جارٍ التحقق من الاتصال"}</span></div>
+            <div className="flex items-center gap-2 text-amber-200"><TimerReset className="size-5" /><span className="text-sm font-bold">{connected ? "Connecté à la synchronisation" : "Vérification de la connexion"}</span></div>
             <p className="mt-4 text-center text-sm text-emerald-50/70">{label}</p>
             <p className="mt-2 text-center text-5xl font-black tracking-tight">{timeFormat(remaining)}</p>
             {isHost ? (
               <div className="mt-5 flex gap-2">
-                <button onClick={toggleTimer} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-amber-400 py-2.5 font-black text-emerald-950"><Play className="size-4" />بدء الجلسة التالية</button>
-                <button onClick={stopTimer} className="flex items-center justify-center gap-1.5 rounded-xl border border-white/20 px-4 py-2.5 font-bold"><Pause className="size-4" />إيقاف</button>
+                <button onClick={toggleTimer} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-amber-400 py-2.5 font-black text-emerald-950"><Play className="size-4" />Démarrer la prochaine session</button>
+                <button onClick={stopTimer} className="flex items-center justify-center gap-1.5 rounded-xl border border-white/20 px-4 py-2.5 font-bold"><Pause className="size-4" />Arrêter</button>
               </div>
             ) : (
-              <p className="mt-5 text-center text-xs text-emerald-50/60">يملك صاحب الغرفة والمشرفون صلاحية تشغيل المؤقت.</p>
+              <p className="mt-5 text-center text-xs text-emerald-50/60">Le propriétaire et les modérateurs peuvent contrôler le minuteur.</p>
             )}
           </article>
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-emerald-950/10 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-emerald-950/10 px-5 py-4">
-            <h1 className="flex items-center gap-2 text-xl font-black text-emerald-950"><MessageCircleMore className="size-5 text-emerald-700" />دردشة الغرفة</h1>
-            <span className="text-xs text-slate-500">{presence.length} متصل</span>
+            <h1 className="flex items-center gap-2 text-xl font-black text-emerald-950"><MessageCircleMore className="size-5 text-emerald-700" />Discussion de la salle</h1>
+            <span className="text-xs text-slate-500">{presence.length} connecté</span>
           </div>
           <div className="h-[400px] space-y-3 overflow-y-auto p-5">
             {visibleMessages.slice().reverse().map(m => (
@@ -159,11 +159,11 @@ export default function RoomDetailPage({ id }: { id: string }) {
                 <p className="mt-1 text-sm leading-6 text-slate-700">{m.body}</p>
               </div>
             ))}
-            {!visibleMessages.length && <p className="py-16 text-center text-sm text-slate-500">لا توجد رسائل بعد.</p>}
+            {!visibleMessages.length && <p className="py-16 text-center text-sm text-slate-500">Aucun message pour le moment.</p>}
           </div>
           <form onSubmit={sendMessage} className="flex gap-2 border-t border-emerald-950/10 p-4">
-            <input id="room-message" value={body} onChange={e => setBody(e.target.value)} maxLength={1000} placeholder="اكتب رسالة…" aria-label="رسالة الغرفة" className="flex-1 rounded-lg border border-slate-200 px-3 py-2" />
-            <button type="submit" aria-label="إرسال رسالة الغرفة" className="rounded-xl bg-emerald-900 px-4 py-2 text-white"><Send className="size-4" aria-hidden="true" /></button>
+            <input id="room-message" value={body} onChange={e => setBody(e.target.value)} maxLength={1000} placeholder="Écrivez un message…" aria-label="Message de la salle" className="flex-1 rounded-lg border border-slate-200 px-3 py-2" />
+            <button type="submit" aria-label="Envoyer le message de la salle" className="rounded-xl bg-emerald-900 px-4 py-2 text-white"><Send className="size-4" aria-hidden="true" /></button>
           </form>
         </section>
       </div>

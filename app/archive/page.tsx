@@ -16,8 +16,8 @@ type ExamRow = {
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "أرشيف الامتحانات الوطنية والجهوية",
-  description: "تصفح أرشيف الامتحانات المغربية حسب المستوى والشعبة والمادة والجهة والسنة.",
+  title: "Archives des examens nationaux et régionaux",
+  description: "Parcourez les archives des examens marocains par niveau, filière, matière, région et année.",
   alternates: { canonical: "/archive" },
 };
 

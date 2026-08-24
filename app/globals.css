@@ -46,5 +46,8 @@ button:active { transform: scale(.98); }
 .najah-button { @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-900 px-5 py-3 font-black text-white shadow-sm hover:bg-emerald-800; }
 .najah-button-gold { @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-400 px-5 py-3 font-black text-emerald-950 shadow-sm hover:bg-amber-300; }
 .najah-input { @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/10; }
+.najah-input-leading-icon { padding-left: 3.25rem !important; }
+.najah-input-trailing-icon { padding-right: 3.25rem !important; }
+.auth-field-icon { pointer-events: none; }
 
 ::selection { background: rgba(216,162,56,.35); }

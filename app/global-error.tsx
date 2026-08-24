@@ -15,16 +15,16 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="fr-MA" dir="ltr">
       <body className="flex min-h-screen items-center justify-center bg-[#f7f6f0] p-8 text-center">
         <div>
-          <p className="text-lg font-bold text-slate-800">وقع خطأ غير متوقع.</p>
-          <p className="mt-1 text-sm text-slate-500">تم تسجيل المشكلة تلقائياً وسنعمل على إصلاحها.</p>
+          <p className="text-lg font-bold text-slate-800">Une erreur inattendue est survenue.</p>
+          <p className="mt-1 text-sm text-slate-500">Le problème a été enregistré automatiquement. Nous allons le résoudre.</p>
           <button
             onClick={() => reset()}
             className="mt-4 rounded-xl bg-emerald-900 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
           >
-            إعادة المحاولة
+            Réessayer
           </button>
         </div>
       </body>

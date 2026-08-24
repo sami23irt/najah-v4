@@ -5,8 +5,8 @@ import RoomClient from "./RoomClient";
 type Props = { params: Promise<{ id: string }> };
 
 export const metadata: Metadata = {
-  title: "غرفة المراجعة",
-  description: "غرفة دراسة تعاونية للتركيز والمراجعة مع زملائك.",
+  title: "Salle de révision",
+  description: "Une salle d’étude collaborative pour vous concentrer et réviser avec vos camarades.",
   robots: { index: false, follow: false },
 };
 

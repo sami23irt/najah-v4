@@ -4,12 +4,12 @@ import { Archive, ArrowRight, BrainCircuit, FileUp, PlayCircle, Sparkles, UsersR
 import { NajahShell } from "@/components/NajahShell";
 
 export const metadata: Metadata = {
-  title: "منصة المراجعة للطلاب المغاربة",
-  description: "راجع الامتحانات المغربية، حوّل دروسك إلى ملخصات، وتدرّب عبر اختبارات ذكية مع Najah.ma.",
+  title: "Plateforme de révision pour les élèves marocains",
+  description: "Révisez les examens marocains, transformez vos cours en résumés et entraînez-vous avec des quiz intelligents sur Najah.ma.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Najah.ma — راجع بذكاء ونجح بثقة",
-    description: "منصة مغربية للمراجعة والفهم والتقدم.",
+    title: "Najah.ma — Révisez mieux, réussissez avec confiance",
+    description: "Une plateforme marocaine pour réviser, comprendre et progresser.",
     url: "/",
   },
 };

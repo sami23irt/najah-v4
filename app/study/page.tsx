@@ -59,14 +59,14 @@ export default function StudyPage() {
         });
       }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "تعذر تحليل الملف.");
+      if (!res.ok) throw new Error(data.error ?? "Impossible d’analyser le fichier.");
 
       setDocumentId(data.documentId);
       setSourceTitle(data.title);
       setSummary(data.summary);
       setMessages([{ from: "ai", text: "Bonjour ! J'ai analysé votre support. Posez-moi une question sur ce cours et je vous répondrai à partir de son contenu." }]);
     } catch (e) {
-      setImportError(e instanceof Error ? e.message : "تعذر تحليل الملف.");
+      setImportError(e instanceof Error ? e.message : "Impossible d’analyser le fichier.");
     } finally {
       setBusy(false);
     }
@@ -291,7 +291,7 @@ function QuizModal({ documentId, close }: { documentId: string; close: () => voi
           signal: controller.signal,
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "تعذر إنشاء الاختبار.");
+        if (!res.ok) throw new Error(data.error ?? "Impossible de créer le quiz.");
         if (!active) return;
         setSessionId(data.sessionId);
         setQuestions(data.questions);
@@ -299,7 +299,7 @@ function QuizModal({ documentId, close }: { documentId: string; close: () => voi
         setPhase("answering");
       } catch (e) {
         if (!active || (e instanceof DOMException && e.name === "AbortError")) return;
-        setError(e instanceof Error ? e.message : "تعذر إنشاء الاختبار.");
+        setError(e instanceof Error ? e.message : "Impossible de créer le quiz.");
         setPhase("error");
       }
     })();
@@ -320,11 +320,11 @@ function QuizModal({ documentId, close }: { documentId: string; close: () => voi
         body: JSON.stringify({ sessionId, answers }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "تعذر إرسال الاختبار.");
+      if (!res.ok) throw new Error(data.error ?? "Impossible d’envoyer le quiz.");
       setResult(data);
       setPhase("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "تعذر إرسال الاختبار.");
+      setError(e instanceof Error ? e.message : "Impossible d’envoyer le quiz.");
       setPhase("error");
     }
   };
