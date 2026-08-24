@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
@@ -24,7 +25,7 @@ export function NajahShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-20 border-b border-emerald-950/10 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-4">
           <Link href="/" className="flex items-center gap-3" aria-label="Najah.ma — Accueil">
-            <span className="grid size-11 place-items-center rounded-2xl bg-emerald-900 text-xl font-black text-white">N</span>
+            <Image src="/assets/najah-logo.png" alt="" width={44} height={44} priority className="size-11 object-contain" />
             <span className="text-2xl font-black tracking-tight text-emerald-950">Najah<span className="text-amber-600">.ma</span></span>
           </Link>
           <nav aria-label="Navigation principale" className="hidden items-center gap-5 lg:flex">
