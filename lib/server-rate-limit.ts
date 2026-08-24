@@ -27,11 +27,13 @@ export async function persistentRateLimit({
     })
     .single();
 
-  // Fail closed for expensive or state-changing operations if the shared
-  // limiter is unavailable. This prevents a database outage from removing
-  // abuse protection across all application instances.
+  // The route already applies the local per-instance limiter before reaching
+  // this shared limiter. If PostgREST is temporarily serving a stale schema or
+  // Supabase is unavailable, keep that first-line protection active instead of
+  // making every legitimate upload fail with a misleading 503.
   if (error || !data) {
-    return NextResponse.json({ error: "خدمة الحماية غير متاحة حالياً." }, { status: 503 });
+    console.error("Persistent rate limiter unavailable; using local limiter fallback", error?.message ?? "empty response");
+    return null;
   }
 
   const result = data as { allowed: boolean; retry_after: number };
