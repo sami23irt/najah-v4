@@ -42,10 +42,11 @@ Les salles audio et vidéo utilisent **LiveKit**. Certaines fonctions pédagogiq
 Prérequis : Node.js, npm et un projet Supabase.
 
 ```bash
-cp .env.example .env.local
 npm install
 npm run dev
 ```
+
+أنشئ ملف `.env.local` محلياً وأضف متغيرات البيئة المطلوبة الموضحة أدناه. لا ترفع هذا الملف إلى Git.
 
 L’application est ensuite disponible à l’adresse [http://localhost:3000](http://localhost:3000).
 
@@ -53,7 +54,7 @@ Pour activer l’authentification et les données réelles, renseignez les varia
 
 ## Variables d’environnement
 
-Copiez `.env.example` vers `.env.local`, puis renseignez les valeurs adaptées à votre environnement :
+Créez un fichier `.env.local` uniquement sur votre machine, puis renseignez les variables suivantes avec vos propres valeurs :
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=
