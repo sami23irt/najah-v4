@@ -22,6 +22,6 @@ export function createBrowserSupabaseClient() {
     return browserClient;
   }
 
-  browserClient = createBrowserClient(url, key);
+  browserClient = createBrowserClient(url, key, { auth: { flowType: "pkce" } });
   return browserClient;
 }
